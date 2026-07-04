@@ -5,9 +5,27 @@ const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const ORIGIN = process.env.CLIENT_ORIGIN || '*';
+// comma-separated list, e.g. "https://www.heard.co.ke,https://heard-ke.netlify.app"
+const ALLOWED_ORIGINS = (process.env.CLIENT_ORIGIN || '*')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
-app.use(cors({ origin: ORIGIN }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (
+        ALLOWED_ORIGINS.includes('*') ||
+        !origin ||
+        ALLOWED_ORIGINS.includes(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  })
+);
 
 // same phrase list the client already uses to trigger the Befrienders nudge
 const HEAVY_RE = /\b(kill myself|end it|no point|can't go on|cant go on|suicide|give up|worthless)\b/i;
