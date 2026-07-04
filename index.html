@@ -404,7 +404,40 @@ async function rsvpEvent(id,btn){
 loadEvents();
 function downloadBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
 function stamp(){ return new Date().toISOString().slice(0,16).replace(/[:T]/g,'-'); }
-function sendText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt'); }
+
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(String(fr.result).split(',')[1]);
+    fr.onerror=reject;
+    fr.readAsDataURL(blob);
+  });
+}
+async function sendToEmail(type,text,attachment,btn){
+  const email=prompt('Send this to your own email address:');
+  if(email===null) return false;
+  const trimmed=email.trim();
+  if(!trimmed) return false;
+  if(btn) btn.disabled=true;
+  try{
+    const res=await fetch(API_BASE+'/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:trimmed,type,text,attachment})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||'failed');
+    alert('Sent to '+trimmed+'.');
+    return true;
+  }catch(e){
+    alert('Couldn’t email it right now — downloading it to your device instead.');
+    return false;
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+async function sendText(){
+  const t=dump.value.trim(); if(t.length<2){dump.focus();return;}
+  const btn=document.querySelector('#write .act.send');
+  const sent=await sendToEmail('text',t,null,btn);
+  if(!sent) downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt');
+}
 
 /* ---------- SPEAK ---------- */
 let mediaRec, chunks=[], recBlob=null, stream=null, audioCtx, analyser, rafId, seconds=0, timerId;
@@ -460,7 +493,13 @@ function resetVoice(){ recBlob=null; document.getElementById('relVoice').disable
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
 function keepVoice(){ if(!recBlob)return; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope(()=>switchMode('kept')); }; fr.readAsDataURL(recBlob); }
-function sendVoice(){ if(!recBlob)return; downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.webm'); }
+async function sendVoice(){
+  if(!recBlob)return;
+  const btn=document.getElementById('sendVoice');
+  const base64=await blobToBase64(recBlob);
+  const sent=await sendToEmail('audio',null,{filename:'heard-ke-voice-'+stamp()+'.webm',base64,contentType:'audio/webm'},btn);
+  if(!sent) downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.webm');
+}
 
 /* ---------- DRAW ---------- */
 const canvas=document.getElementById('canvas'); const ctx=canvas.getContext('2d');
@@ -481,7 +520,15 @@ canvas.addEventListener('pointerleave',()=>{drawing=false;});
 function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); dirty=false; }
 function releaseDraw(){ if(!dirty){return;} canvas.classList.add('gone'); setTimeout(()=>{clearCanvas();canvas.classList.remove('gone');},850); burn('Out of your hands now.'); }
 async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); clearCanvas(); sealEnvelope(()=>switchMode('kept')); }
-function sendDraw(){ if(!dirty)return; canvas.toBlob(b=>downloadBlob(b,'heard-ke-drawing-'+stamp()+'.png')); }
+function sendDraw(){
+  if(!dirty)return;
+  canvas.toBlob(async b=>{
+    const btn=document.querySelector('#draw .act.send');
+    const base64=await blobToBase64(b);
+    const sent=await sendToEmail('draw',null,{filename:'heard-ke-drawing-'+stamp()+'.png',base64,contentType:'image/png'},btn);
+    if(!sent) downloadBlob(b,'heard-ke-drawing-'+stamp()+'.png');
+  });
+}
 fitCanvas();
 
 /* ---------- KEPT ---------- */

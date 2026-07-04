@@ -1,6 +1,15 @@
 # Heard.ke server
 
-Backend for the anonymous Wall and Events/RSVP features.
+Backend for the anonymous Wall, Events/RSVP, and "send it to myself" email features.
+
+## Email sending (Resend)
+Set these env vars to enable "send it to myself" emails:
+- `RESEND_API_KEY` — from resend.com
+- `MAIL_FROM` — sender address, e.g. `Heard.ke <noreply@heard.co.ke>` (requires verifying
+  your domain in Resend). Without a verified domain, Resend's default
+  `onboarding@resend.dev` sender only delivers to the email address you signed up with.
+If `RESEND_API_KEY` isn't set, the endpoint returns 503 and the frontend falls back to
+a local download automatically.
 
 ## Run locally
 ```
