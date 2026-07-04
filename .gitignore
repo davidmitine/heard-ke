@@ -1,0 +1,6 @@
+node_modules/
+server/*.db
+server/*.db-*
+*.pkg
+*.ai
+*.pptx

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Heard.ke — Let it out</title>
+<meta name="description" content="A safe, private space for men to let it out. Write it, say it, or draw it — then release what burdens you. No name, no account, no download.">
+<meta name="theme-color" content="#211913">
+<meta property="og:title" content="Heard.ke — Let it out">
+<meta property="og:description" content="A safe, private space for men to release what burdens you. Write it, say it, or draw it — then let it go.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='26' fill='%23211913'/><g fill='%23efe7d9'><rect x='18' y='46' width='11' height='30' rx='5.5'/><rect x='35' y='36' width='11' height='50' rx='5.5'/><rect x='76' y='36' width='11' height='50' rx='5.5'/><rect x='93' y='46' width='11' height='30' rx='5.5'/></g><circle cx='61' cy='30' r='8' fill='%23e6a95c'/><rect x='55.5' y='42' width='11' height='46' rx='5.5' fill='%23e6a95c'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#211913; --bg-2:#2b211a; --bg-3:#352a21; --line:#493a2e;
+    --cream:#efe7d9; --muted:#b6a892; --amber:#e6a95c; --amber-soft:#f0c489; --olive:#93a06a; --clay:#cd6046;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--cream);font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+  h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;line-height:1.1}
+  .app{max-width:600px;margin:0 auto;padding:0 18px 130px}
+  .eyebrow{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);font-weight:600}
+
+  header{display:flex;align-items:center;gap:11px;padding:16px 0 12px;position:sticky;top:0;background:rgba(33,25,19,.9);backdrop-filter:blur(8px);z-index:30}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand .wm{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.15rem;letter-spacing:-.03em}
+  .brand .wm .ke{color:var(--amber);font-size:.82rem}
+  .lock{margin-left:auto;font-size:.7rem;color:var(--olive);display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px}
+  .lock svg{width:12px;height:12px}
+  .exit{font-size:.76rem;color:var(--muted);border:1px solid var(--line);background:none;border-radius:999px;padding:6px 11px;cursor:pointer;font-family:inherit}
+  .exit:hover{border-color:var(--clay);color:var(--clay)}
+
+  .intro{margin:14px 0 20px}
+  .intro h1{font-size:clamp(1.7rem,6vw,2.2rem);font-weight:800}
+  .intro p{color:var(--muted);margin-top:8px}
+  .intro .welcome{color:var(--cream);font-size:1.14rem;line-height:1.55;margin-top:12px;max-width:44ch}
+  .intro .intro-sub{color:var(--muted);font-size:.95rem;margin-top:14px}
+
+  .tabs{display:flex;gap:5px;background:var(--bg-2);border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:24px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;font-weight:600;font-size:.8rem;color:var(--muted);background:none;border:none;padding:9px 4px;border-radius:999px;cursor:pointer;transition:.15s}
+  .tab svg{width:17px;height:17px}
+  .tab.on{background:var(--amber);color:#2a1c10}
+
+  .mode{display:none;animation:fade .35s ease}
+  .mode.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  textarea{width:100%;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);color:var(--cream);font-family:inherit;font-size:1.08rem;line-height:1.6;padding:18px;resize:vertical;min-height:200px}
+  textarea:focus{outline:2px solid var(--amber);border-color:transparent}
+  textarea::placeholder{color:#7d715f}
+
+  /* actions */
+  .actions{margin-top:22px;display:grid;gap:11px}
+  .act{font-family:inherit;font-weight:700;font-size:1rem;border:none;border-radius:14px;padding:15px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .12s}
+  .act:active{transform:translateY(1px)}
+  .act:disabled{opacity:.4;cursor:not-allowed}
+  .act small{font-weight:500;font-size:.76rem;opacity:.82}
+  .act.release{background:linear-gradient(135deg,var(--clay),#e0863f);color:#fff}
+  .act.keep{background:var(--amber);color:#2a1c10}
+  .act.say{background:transparent;border:1px solid var(--line);color:var(--cream)}
+  .act.say:hover{border-color:var(--olive)}
+  .act.send{background:transparent;border:1px solid var(--line);color:var(--olive)}
+  .act.send:hover{border-color:var(--olive)}
+
+  /* speak */
+  .rec-stage{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center}
+  .levels{display:flex;align-items:flex-end;justify-content:center;gap:5px;height:70px;margin-bottom:22px}
+  .levels i{width:7px;height:8px;background:var(--olive);border-radius:4px;transition:height .08s linear}
+  .rec-btn{width:84px;height:84px;border-radius:50%;border:none;cursor:pointer;background:var(--clay);margin:0 auto;display:flex;align-items:center;justify-content:center;transition:.2s}
+  .rec-btn:hover{transform:scale(1.04)}
+  .rec-btn .glyph{width:30px;height:30px;border-radius:50%;background:#fff;transition:.2s}
+  .rec-btn.recording{background:#fff;box-shadow:0 0 0 6px rgba(205,96,70,.25)}
+  .rec-btn.recording .glyph{width:26px;height:26px;border-radius:6px;background:var(--clay)}
+  .rec-label{margin-top:16px;font-size:.9rem;color:var(--muted)}
+  .timer{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.4rem;margin-top:8px}
+  audio{width:100%;margin-top:18px}
+  .mic-err{color:var(--amber-soft);font-size:.9rem;margin-top:16px;line-height:1.5;display:none}
+  .mic-err.on{display:block}
+
+  /* draw */
+  .draw-tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
+  .sw.on{border-color:var(--cream);transform:scale(1.1)}
+  .brush{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+  .brush input{width:90px}
+  canvas{width:100%;height:320px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);touch-action:none;display:block;transition:opacity .8s ease,filter .8s ease}
+  canvas.gone{opacity:0;filter:blur(12px)}
+  .clearbtn{font-family:inherit;font-size:.82rem;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 13px;cursor:pointer}
+  .clearbtn:hover{color:var(--cream)}
+
+  /* kept */
+  .empty{text-align:center;padding:44px 18px;color:var(--muted)}
+  .empty .big{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.4rem;color:var(--cream);margin-bottom:8px}
+  .item{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .item .meta{display:flex;align-items:center;gap:9px;font-size:.76rem;color:var(--muted);margin-bottom:10px}
+  .item .ty{border:1px solid var(--line);border-radius:6px;padding:2px 8px;text-transform:uppercase;letter-spacing:.06em}
+  .item .del{margin-left:auto;background:none;border:none;color:var(--muted);font-family:inherit;font-size:.75rem;cursor:pointer}
+  .item .del:hover{color:var(--clay)}
+  .item .txt{white-space:pre-wrap}
+  .item img{max-width:100%;border-radius:10px;display:block}
+
+  /* burn */
+  .burn{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
+  .burn.on{display:flex}
+  .ember{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);color:var(--amber);max-width:16ch;filter:drop-shadow(0 0 18px rgba(230,169,92,.7))}
+  .burn.go .ember{animation:burnaway 2s ease forwards}
+  @keyframes burnaway{0%{opacity:1;transform:scale(1)}40%{opacity:1;filter:blur(0) drop-shadow(0 0 40px rgba(205,96,70,.9))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
+  .burn-done{opacity:0;margin-top:26px;font-size:1.05rem;color:var(--muted)}
+  .burn.done .burn-done{animation:fadein .8s ease forwards}
+  @keyframes fadein{to{opacity:1}}
+
+  /* fire (release) */
+  .flames{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(92vw,540px);height:58vh;pointer-events:none;opacity:0}
+  .burn.on .flames{opacity:1;transition:opacity .45s ease}
+  .burn.done .flames{opacity:0;transition:opacity .7s ease}
+  .fl{position:absolute;bottom:0;transform-origin:50% 100%;mix-blend-mode:screen;border-radius:50% 50% 46% 46% / 64% 64% 40% 40%}
+  .fl1{left:50%;width:72%;margin-left:-36%;height:92%;filter:blur(15px);background:linear-gradient(to top,#cd6046 0%,#e6a95c 42%,rgba(230,169,92,0) 78%);animation:flick 1.9s ease-in-out infinite}
+  .fl2{left:50%;width:50%;margin-left:-25%;height:80%;filter:blur(11px);background:linear-gradient(to top,#e0863f 0%,#f0c489 45%,rgba(240,196,137,0) 80%);animation:flick 1.4s ease-in-out infinite reverse}
+  .fl3{left:50%;width:30%;margin-left:-15%;height:64%;filter:blur(7px);background:linear-gradient(to top,#f0c489 0%,#fff6e6 40%,rgba(255,246,230,0) 82%);animation:flick 1.05s ease-in-out infinite}
+  .fl4{left:35%;width:20%;margin-left:-10%;height:54%;filter:blur(9px);background:linear-gradient(to top,#e6a95c,rgba(230,169,92,0) 80%);animation:flick .9s ease-in-out infinite}
+  .fl5{left:65%;width:20%;margin-left:-10%;height:52%;filter:blur(9px);background:linear-gradient(to top,#e6a95c,rgba(230,169,92,0) 80%);animation:flick 1.15s ease-in-out infinite reverse}
+  @keyframes flick{0%,100%{transform:scaleY(1) scaleX(1);opacity:.92}25%{transform:scaleY(1.16) scaleX(.93);opacity:1}50%{transform:scaleY(.9) scaleX(1.07);opacity:.82}75%{transform:scaleY(1.08) scaleX(.97);opacity:.96}}
+
+  /* envelope seal (keep) */
+  .seal{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column}
+  .seal.on{display:flex}
+  .env{position:relative;width:240px;height:156px;perspective:750px;opacity:0}
+  .seal.on .env{opacity:1;transition:opacity .35s ease}
+  .ebody{position:absolute;inset:0;background:#e8d9c0;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+  .ebody::after{content:"";position:absolute;left:9px;right:9px;top:9px;bottom:9px;border:1px solid #d3bd99;border-radius:6px}
+  .flap{position:absolute;top:0;left:0;width:0;height:0;border-left:120px solid transparent;border-right:120px solid transparent;border-top:80px solid #dcc7a6;transform-origin:top center;transform:rotateX(-180deg);backface-visibility:hidden}
+  .seal.fold .flap{transition:transform .6s ease;transform:rotateX(0deg)}
+  .wax{position:absolute;top:50px;left:50%;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#e07a5f,#b23a22);color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:25px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 9px rgba(0,0,0,.4);transform:translateX(-50%) scale(0) rotate(-18deg)}
+  .seal.stamp .wax{transition:transform .45s cubic-bezier(.34,1.56,.64,1);transform:translateX(-50%) scale(1) rotate(0)}
+  .seal-done{opacity:0;margin-top:30px;font-size:1.05rem;color:var(--muted)}
+  .seal.done .seal-done{animation:fadein .7s ease forwards}
+
+  .nudge{background:linear-gradient(135deg,#3a221c,#2b211a);border:1px solid var(--clay);border-radius:var(--radius);padding:16px;margin-top:20px}
+  .nudge p{font-size:.92rem;margin-bottom:10px}
+  .nudge a{display:inline-block;background:var(--clay);color:#fff;text-decoration:none;font-weight:700;padding:9px 15px;border-radius:999px;font-size:.88rem}
+  .connect{background:linear-gradient(135deg,#2f2a1c,#2b211a);border:1px solid var(--line);border-radius:var(--radius);padding:26px;margin-top:30px;text-align:center}
+  .connect h2{font-size:1.4rem;font-weight:800;margin-bottom:8px}
+  .connect p{color:var(--muted);max-width:48ch;margin:0 auto 18px}
+  .connect-btn{font-family:inherit;font-weight:700;font-size:1rem;background:var(--olive);color:#22271a;border:none;border-radius:12px;padding:14px 24px;cursor:pointer;transition:.15s}
+  .connect-btn:hover{background:#a6b381}
+  .foot{text-align:center;margin-top:28px;font-size:.8rem;color:var(--muted)}
+  .foot a{color:var(--amber-soft)}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  ::selection{background:var(--amber);color:#241a10}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <!-- Heard.ke mark (Direction B, quieter) -->
+      <svg viewBox="0 0 120 120" width="30" height="30" aria-label="Heard.ke">
+        <g fill="#efe7d9">
+          <rect x="18" y="46" width="11" height="30" rx="5.5"/>
+          <rect x="35" y="36" width="11" height="50" rx="5.5"/>
+          <rect x="76" y="36" width="11" height="50" rx="5.5"/>
+          <rect x="93" y="46" width="11" height="30" rx="5.5"/>
+        </g>
+        <circle cx="61" cy="30" r="8" fill="#e6a95c"/>
+        <rect x="55.5" y="42" width="11" height="46" rx="5.5" fill="#e6a95c"/>
+      </svg>
+      <span class="wm">Heard<span class="ke">.ke</span></span>
+    </div>
+    <span class="lock" title="Nothing here leaves your device"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Stays on your device</span>
+    <button class="exit" onclick="location.replace('https://www.google.com/search?q=weather')">Exit</button>
+  </header>
+
+  <div class="intro">
+    <p class="eyebrow">No name. No account. No download.</p>
+    <h1>Let it out.</h1>
+    <p class="welcome">We know you’re going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
+    <p class="intro-sub">Write it, say it, or draw it — then choose what happens to it.</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-m="write"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Write</button>
+    <button class="tab" data-m="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Speak</button>
+    <button class="tab" data-m="draw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21l3-1L20 6a2 2 0 0 0-3-3L3 17z"/></svg>Draw</button>
+    <button class="tab" data-m="wall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>Wall</button>
+    <button class="tab" data-m="kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Kept</button>
+  </div>
+
+  <!-- WRITE -->
+  <section class="mode on" id="write">
+    <textarea id="dump" placeholder="Just start. Nobody's reading this. Get it out of your head and onto the page."></textarea>
+    <div class="nudge" id="nudgeW" style="display:none">
+      <p>That's a lot to carry on your own. You don't have to. A real person is on the line, any time.</p>
+      <a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>
+    </div>
+    <div class="actions">
+      <button class="act release" onclick="releaseText()">Release it <small>Let it burn. Nothing is saved.</small></button>
+      <button class="act keep" onclick="keepText()">Keep it <small>Store it privately, only on this device.</small></button>
+      <button class="act say" onclick="sayIt('write')">Say it anonymously <small>Other men will hear you — no name attached.</small></button>
+      <button class="act send" onclick="sendText()">Send it to myself <small>Download it to keep, or email it on.</small></button>
+    </div>
+  </section>
+
+  <!-- SPEAK -->
+  <section class="mode" id="speak">
+    <div class="rec-stage">
+      <div class="levels" id="levels"></div>
+      <button class="rec-btn" id="recBtn" aria-label="Record"><span class="glyph"></span></button>
+      <div class="rec-label" id="recLabel">Tap to speak. Say it out loud — nobody else hears it.</div>
+      <div class="timer" id="timer" style="display:none">0:00</div>
+      <audio id="player" controls style="display:none"></audio>
+      <div class="mic-err" id="micErr">Your browser blocked the microphone here. On the live Heard.ke site (over https) this works fine. For now, try <b>Write</b> or <b>Draw</b>.</div>
+    </div>
+    <div class="actions">
+      <button class="act release" id="relVoice" onclick="releaseVoice()" disabled>Release it <small>Say it, then let it go. Nothing is saved.</small></button>
+      <button class="act keep" id="keepVoice" onclick="keepVoice()" disabled>Keep it <small>Save the recording privately on this device.</small></button>
+      <button class="act send" id="sendVoice" onclick="sendVoice()" disabled>Send it to myself <small>Download the recording to your device.</small></button>
+    </div>
+  </section>
+
+  <!-- DRAW -->
+  <section class="mode" id="draw">
+    <div class="draw-tools">
+      <div class="sw on" style="background:#efe7d9" data-c="#efe7d9"></div>
+      <div class="sw" style="background:#e6a95c" data-c="#e6a95c"></div>
+      <div class="sw" style="background:#93a06a" data-c="#93a06a"></div>
+      <div class="sw" style="background:#cd6046" data-c="#cd6046"></div>
+      <div class="brush">brush <input type="range" id="brush" min="2" max="26" value="7"></div>
+      <button class="clearbtn" onclick="clearCanvas()">Clear</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div class="actions">
+      <button class="act release" onclick="releaseDraw()">Release it <small>Watch it dissolve. Nothing is saved.</small></button>
+      <button class="act keep" onclick="keepDraw()">Keep it <small>Save the drawing privately on this device.</small></button>
+      <button class="act send" onclick="sendDraw()">Send it to myself <small>Download the drawing to your device.</small></button>
+    </div>
+  </section>
+
+  <!-- WALL -->
+  <section class="mode" id="wall">
+    <textarea id="wallDump" placeholder="Say it here. Other men will read this — no name attached, ever." maxlength="2000"></textarea>
+    <div class="nudge" id="nudgeWall" style="display:none">
+      <p>That's a lot to carry on your own. You don't have to. A real person is on the line, any time.</p>
+      <a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>
+    </div>
+    <div class="actions">
+      <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you — no name attached.</small></button>
+    </div>
+    <div id="wallFeed" style="margin-top:22px"></div>
+  </section>
+
+  <!-- KEPT -->
+  <section class="mode" id="kept">
+    <div id="keptList"></div>
+  </section>
+
+  <div class="connect">
+    <h2>Want some good company?</h2>
+    <p>Some weight lifts better with other men around — a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.</p>
+    <div id="eventsList"></div>
+  </div>
+
+  <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:+254722178177">0722 178 177</a>.</p>
+</div>
+
+<div class="burn" id="burn">
+  <div class="flames" aria-hidden="true"><span class="fl fl1"></span><span class="fl fl2"></span><span class="fl fl3"></span><span class="fl fl4"></span><span class="fl fl5"></span></div>
+  <div class="ember" id="ember"></div>
+  <div class="burn-done">You got it out. Hope this felt better.</div>
+</div>
+
+<div class="seal" id="seal" aria-hidden="true">
+  <div class="env"><div class="ebody"></div><div class="flap"></div><div class="wax">H</div></div>
+  <div class="seal-done">Kept. Safe with you — only on this device.</div>
+</div>
+
+<script>
+/* ---------- api ---------- */
+const API_BASE = 'http://localhost:4000';
+function getClientId(){
+  let id=localStorage.getItem('heardke_client_id');
+  if(!id){ id='c'+Date.now()+Math.random().toString(36).slice(2); localStorage.setItem('heardke_client_id',id); }
+  return id;
+}
+
+/* ---------- tabs ---------- */
+function switchMode(m){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.m===m));
+  document.querySelectorAll('.mode').forEach(s=>s.classList.toggle('on',s.id===m));
+  if(m==='kept') renderKept();
+  if(m==='draw') setTimeout(fitCanvas,50);
+  if(m==='wall') loadWall();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchMode(t.dataset.m)));
+
+/* ---------- storage (private, saved on this device via localStorage) ---------- */
+const KEY='heardke_release_items';
+let items=[];
+function loadItems(){ try{ const raw=localStorage.getItem(KEY); if(raw) items=JSON.parse(raw)||[]; }catch(e){ items=[]; } }
+function saveItems(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ if(e&&e.name==='QuotaExceededError'){ alert('This device’s storage is full — try keeping shorter notes or fewer voice clips.'); } } }
+loadItems();
+
+/* ---------- burn overlay ---------- */
+function burn(text){
+  const em=document.getElementById('ember'); em.textContent=text||'Let it go.';
+  const b=document.getElementById('burn'); b.classList.add('on');
+  requestAnimationFrame(()=>b.classList.add('go'));
+  setTimeout(()=>b.classList.add('done'),1900);
+  setTimeout(()=>b.classList.remove('on','go','done'),3600);
+}
+function sealEnvelope(done){
+  const s=document.getElementById('seal'); s.classList.add('on');
+  requestAnimationFrame(()=>s.classList.add('fold'));
+  setTimeout(()=>s.classList.add('stamp'),640);
+  setTimeout(()=>s.classList.add('done'),1150);
+  setTimeout(()=>{ s.classList.remove('on','fold','stamp','done'); if(done)done(); },2450);
+}
+
+/* ---------- WRITE ---------- */
+const dump=document.getElementById('dump');
+dump.addEventListener('input',()=>{
+  const v=dump.value.toLowerCase();
+  const heavy=/\b(kill myself|end it|no point|can't go on|cant go on|suicide|give up|worthless)\b/.test(v);
+  document.getElementById('nudgeW').style.display=heavy?'block':'none';
+});
+function releaseText(){ const t=dump.value.trim(); burn(t? (t.length>90?t.slice(0,90)+'…':t):''); dump.value=''; document.getElementById('nudgeW').style.display='none'; }
+async function keepText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} items.unshift({id:Date.now(),ts:Date.now(),type:'text',data:t}); await saveItems(); dump.value=''; sealEnvelope(()=>switchMode('kept')); }
+function sayIt(){ const t=dump.value.trim(); switchMode('wall'); if(t) wallDump.value=t; }
+
+/* ---------- WALL ---------- */
+const wallDump=document.getElementById('wallDump');
+wallDump.addEventListener('input',()=>{
+  const v=wallDump.value.toLowerCase();
+  const heavy=/\b(kill myself|end it|no point|can't go on|cant go on|suicide|give up|worthless)\b/.test(v);
+  document.getElementById('nudgeWall').style.display=heavy?'block':'none';
+});
+async function loadWall(){
+  const el=document.getElementById('wallFeed');
+  el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Loading…</p>';
+  try{
+    const res=await fetch(API_BASE+'/api/wall');
+    if(!res.ok) throw new Error('bad response');
+    const posts=await res.json();
+    if(!posts.length){ el.innerHTML='<div class="empty"><div class="big">Nobody\'s posted yet.</div><p>Be the first to say it.</p></div>'; return; }
+    el.innerHTML=posts.map(p=>`<div class="item"><div class="meta"><span>${timeAgo(p.ts)}</span><button class="del" onclick="reportPost(${p.id})">report</button></div><div class="txt">${esc(p.text)}</div></div>`).join('');
+  }catch(e){
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t reach the wall right now. Try again in a moment.</p>';
+  }
+}
+async function postToWall(){
+  const t=wallDump.value.trim();
+  if(t.length<2){ wallDump.focus(); return; }
+  const btn=document.getElementById('wallPostBtn'); btn.disabled=true;
+  try{
+    const res=await fetch(API_BASE+'/api/wall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'failed');
+    wallDump.value=''; document.getElementById('nudgeWall').style.display='none';
+    await loadWall();
+  }catch(e){
+    alert('Couldn’t post right now — check your connection and try again.');
+  }finally{ btn.disabled=false; }
+}
+async function reportPost(id){
+  try{ await fetch(API_BASE+'/api/wall/'+id+'/report',{method:'POST'}); loadWall(); }catch(e){}
+}
+
+/* ---------- EVENTS / CONNECT ---------- */
+async function loadEvents(){
+  const el=document.getElementById('eventsList');
+  el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Loading meetups…</p>';
+  try{
+    const res=await fetch(API_BASE+'/api/events');
+    if(!res.ok) throw new Error('bad response');
+    const events=await res.json();
+    if(!events.length){ el.innerHTML='<p style="color:var(--muted);font-size:.9rem">No meetups scheduled right now — check back soon.</p>'; return; }
+    el.innerHTML=events.map(ev=>{
+      const d=new Date(ev.datetime);
+      const when=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
+      return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${ev.location}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div><button class="connect-btn" style="width:100%" onclick="rsvpEvent(${ev.id},this)">I'm in · ${ev.rsvp_count} going</button></div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t load meetups right now. Try again in a moment.</p>';
+  }
+}
+async function rsvpEvent(id,btn){
+  btn.disabled=true;
+  try{
+    const res=await fetch(API_BASE+'/api/events/'+id+'/rsvp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:getClientId()})});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'failed');
+    btn.textContent="You're in · "+data.rsvp_count+' going';
+  }catch(e){
+    btn.disabled=false;
+    alert('Couldn’t RSVP right now — check your connection and try again.');
+  }
+}
+loadEvents();
+function downloadBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
+function stamp(){ return new Date().toISOString().slice(0,16).replace(/[:T]/g,'-'); }
+function sendText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt'); }
+
+/* ---------- SPEAK ---------- */
+let mediaRec, chunks=[], recBlob=null, stream=null, audioCtx, analyser, rafId, seconds=0, timerId;
+const levels=document.getElementById('levels');
+for(let i=0;i<9;i++){const b=document.createElement('i');levels.appendChild(b);}
+const bars=[...levels.children];
+const recBtn=document.getElementById('recBtn');
+recBtn.addEventListener('click',toggleRec);
+function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+async function toggleRec(){
+  if(mediaRec && mediaRec.state==='recording'){ stopRec(); return; }
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){ document.getElementById('micErr').classList.add('on'); return; }
+  document.getElementById('micErr').classList.remove('on');
+  chunks=[]; mediaRec=new MediaRecorder(stream);
+  mediaRec.ondataavailable=e=>chunks.push(e.data);
+  mediaRec.onstop=()=>{
+    recBlob=new Blob(chunks,{type:'audio/webm'});
+    const url=URL.createObjectURL(recBlob);
+    const p=document.getElementById('player'); p.src=url; p.style.display='block';
+    document.getElementById('relVoice').disabled=false;
+    document.getElementById('keepVoice').disabled=false;
+    document.getElementById('sendVoice').disabled=false;
+  };
+  mediaRec.start();
+  recBtn.classList.add('recording');
+  document.getElementById('recLabel').textContent='Recording… tap to stop.';
+  document.getElementById('player').style.display='none';
+  seconds=0; const t=document.getElementById('timer'); t.style.display='block'; t.textContent='0:00';
+  timerId=setInterval(()=>{seconds++;t.textContent=fmt(seconds);},1000);
+  // live levels
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const src=audioCtx.createMediaStreamSource(stream);
+  analyser=audioCtx.createAnalyser(); analyser.fftSize=64; src.connect(analyser);
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  (function loop(){ analyser.getByteFrequencyData(data);
+    bars.forEach((b,i)=>{ const v=data[i*2]||0; b.style.height=(8+v/255*58)+'px'; b.style.background=v>150?'#e6a95c':'#93a06a'; });
+    rafId=requestAnimationFrame(loop);
+  })();
+}
+function stopRec(){
+  if(mediaRec&&mediaRec.state==='recording')mediaRec.stop();
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  cancelAnimationFrame(rafId); clearInterval(timerId);
+  if(audioCtx)audioCtx.close();
+  bars.forEach(b=>b.style.height='8px');
+  recBtn.classList.remove('recording');
+  document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
+}
+function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true;
+  document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
+  document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
+function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
+function keepVoice(){ if(!recBlob)return; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope(()=>switchMode('kept')); }; fr.readAsDataURL(recBlob); }
+function sendVoice(){ if(!recBlob)return; downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.webm'); }
+
+/* ---------- DRAW ---------- */
+const canvas=document.getElementById('canvas'); const ctx=canvas.getContext('2d');
+let color='#efe7d9', drawing=false, lastP=null, dirty=false, dpr=window.devicePixelRatio||1;
+function fitCanvas(){ const r=canvas.getBoundingClientRect(); const img=canvas.toDataURL();
+  canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.scale(dpr,dpr);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  if(dirty){ const i=new Image(); i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height); i.src=img; }
+}
+window.addEventListener('resize',()=>{ if(document.getElementById('draw').classList.contains('on')) fitCanvas(); });
+document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.sw').forEach(x=>x.classList.remove('on')); s.classList.add('on'); color=s.dataset.c; }));
+document.getElementById('brush').addEventListener('input',e=>ctx.lineWidth=+e.target.value);
+function pos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+canvas.addEventListener('pointerdown',e=>{ drawing=true; lastP=pos(e); canvas.setPointerCapture(e.pointerId); ctx.lineWidth=+document.getElementById('brush').value; ctx.strokeStyle=color; ctx.beginPath(); ctx.arc(lastP.x,lastP.y,ctx.lineWidth/2,0,7); ctx.fillStyle=color; ctx.fill(); dirty=true; });
+canvas.addEventListener('pointermove',e=>{ if(!drawing)return; const p=pos(e); ctx.strokeStyle=color; ctx.beginPath(); ctx.moveTo(lastP.x,lastP.y); ctx.lineTo(p.x,p.y); ctx.stroke(); lastP=p; });
+canvas.addEventListener('pointerup',()=>{drawing=false;});
+canvas.addEventListener('pointerleave',()=>{drawing=false;});
+function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); dirty=false; }
+function releaseDraw(){ if(!dirty){return;} canvas.classList.add('gone'); setTimeout(()=>{clearCanvas();canvas.classList.remove('gone');},850); burn('Out of your hands now.'); }
+async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); clearCanvas(); sealEnvelope(()=>switchMode('kept')); }
+function sendDraw(){ if(!dirty)return; canvas.toBlob(b=>downloadBlob(b,'heard-ke-drawing-'+stamp()+'.png')); }
+fitCanvas();
+
+/* ---------- KEPT ---------- */
+function timeAgo(ts){const d=(Date.now()-ts)/1000; if(d<60)return'just now'; if(d<3600)return Math.floor(d/60)+'m ago'; if(d<86400)return Math.floor(d/3600)+'h ago'; return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function renderKept(){
+  const el=document.getElementById('keptList');
+  if(!items.length){ el.innerHTML='<div class="empty"><div class="big">Nothing kept.</div><p>What you choose to keep lives here — private, only on this device. Everything else you release is gone for good.</p></div>'; return; }
+  el.innerHTML=items.map(it=>{
+    let body='';
+    if(it.type==='text')body=`<div class="txt">${esc(it.data)}</div>`;
+    else if(it.type==='audio')body=`<audio controls src="${it.data}" style="width:100%"></audio>`;
+    else if(it.type==='draw')body=`<img src="${it.data}" alt="kept drawing">`;
+    return `<div class="item"><div class="meta"><span class="ty">${it.type}</span><span>${timeAgo(it.ts)}</span><button class="del" onclick="removeItem(${it.id})">delete</button></div>${body}</div>`;
+  }).join('');
+}
+async function removeItem(id){ items=items.filter(i=>i.id!==id); await saveItems(); renderKept(); }
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+</script>
+</body>
+</html>
