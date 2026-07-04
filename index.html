@@ -281,7 +281,7 @@
 
 <script>
 /* ---------- api ---------- */
-const API_BASE = 'http://localhost:4000';
+const API_BASE = 'https://heard-ke.onrender.com';
 function getClientId(){
   let id=localStorage.getItem('heardke_client_id');
   if(!id){ id='c'+Date.now()+Math.random().toString(36).slice(2); localStorage.setItem('heardke_client_id',id); }
