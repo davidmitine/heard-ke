@@ -16,9 +16,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const postLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 const rsvpLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
 const emailLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
+const lockerWriteLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
+const lockerReadLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 const smallJson = express.json({ limit: '20kb' });
 const emailJson = express.json({ limit: '15mb' });
+const lockerJson = express.json({ limit: '15mb' });
+
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L to avoid ambiguity
+function generateLockerCode() {
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  }
+  return code;
+}
 
 function serializePost(row) {
   return { id: row.id, text: row.text, ts: row.ts, flagged: !!row.flagged };
@@ -173,6 +185,55 @@ function escapeHtml(s) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[m]));
 }
+
+// ---------- locker (keep on this site, no account — retrieval by code only) ----------
+app.post('/api/locker', lockerWriteLimiter, lockerJson, (req, res) => {
+  const type = String(req.body?.type || '').trim();
+  const text = req.body?.text ? String(req.body.text) : null;
+  const attachment = req.body?.attachment; // { base64, contentType }
+
+  if (!['text', 'audio', 'draw'].includes(type)) {
+    return res.status(400).json({ error: 'invalid type' });
+  }
+  if (type === 'text' && (!text || text.length > 5000)) {
+    return res.status(400).json({ error: 'text required (max 5000 chars)' });
+  }
+  if (type !== 'text' && !attachment?.base64) {
+    return res.status(400).json({ error: 'attachment required' });
+  }
+
+  let code;
+  do {
+    code = generateLockerCode();
+  } while (db.prepare('SELECT 1 FROM locker WHERE code = ?').get(code));
+
+  db.prepare(
+    `INSERT INTO locker (code, type, text, attachment_base64, attachment_content_type, ts)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    code,
+    type,
+    text,
+    attachment?.base64 || null,
+    attachment?.contentType || null,
+    Date.now()
+  );
+
+  res.status(201).json({ code });
+});
+
+app.get('/api/locker/:code', lockerReadLimiter, (req, res) => {
+  const code = String(req.params.code || '').trim().toUpperCase();
+  const row = db.prepare('SELECT * FROM locker WHERE code = ?').get(code);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  res.json({
+    type: row.type,
+    text: row.text,
+    attachment: row.attachment_base64
+      ? { base64: row.attachment_base64, contentType: row.attachment_content_type }
+      : null
+  });
+});
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

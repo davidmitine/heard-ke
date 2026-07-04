@@ -28,6 +28,15 @@ db.exec(`
     ts INTEGER NOT NULL,
     PRIMARY KEY (event_id, client_id)
   );
+
+  CREATE TABLE IF NOT EXISTS locker (
+    code TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    text TEXT,
+    attachment_base64 TEXT,
+    attachment_content_type TEXT,
+    ts INTEGER NOT NULL
+  );
 `);
 
 const eventCount = db.prepare('SELECT COUNT(*) AS n FROM events').get().n;

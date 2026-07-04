@@ -138,6 +138,12 @@
   .seal.stamp .wax{transition:transform .45s cubic-bezier(.34,1.56,.64,1);transform:translateX(-50%) scale(1) rotate(0)}
   .seal-done{opacity:0;margin-top:30px;font-size:1.05rem;color:var(--muted)}
   .seal.done .seal-done{animation:fadein .7s ease forwards}
+  .seal-options{opacity:0;margin-top:24px;display:flex;flex-direction:column;gap:10px;width:min(86vw,300px)}
+  .seal.done .seal-options{animation:fadein .7s ease forwards}
+  .seal-options .act{padding:12px;font-size:.92rem}
+  #sealLockerCode{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  #sealLockerCode .code{font-family:'Bricolage Grotesque';font-weight:800;font-size:1.3rem;letter-spacing:.06em;color:var(--amber-soft)}
+  #sealLockerCode p{font-size:.8rem;color:var(--muted);margin-top:6px}
 
   .nudge{background:linear-gradient(135deg,#3a221c,#2b211a);border:1px solid var(--clay);border-radius:var(--radius);padding:16px;margin-top:20px}
   .nudge p{font-size:.92rem;margin-bottom:10px}
@@ -259,6 +265,14 @@
 
   <!-- KEPT -->
   <section class="mode" id="kept">
+    <div class="nudge" style="background:var(--bg-2);border-color:var(--line)">
+      <p>Have a code from something you kept on this site? Enter it to open it.</p>
+      <div style="display:flex;gap:8px">
+        <input id="lockerCodeInput" placeholder="e.g. 7F3K9QZP" style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--cream);padding:10px 12px;font-family:inherit">
+        <button class="act say" style="width:auto;padding:10px 16px" onclick="redeemLockerCode()">Open</button>
+      </div>
+    </div>
+    <div id="lockerResult"></div>
     <div id="keptList"></div>
   </section>
 
@@ -280,6 +294,13 @@
 <div class="seal" id="seal" aria-hidden="true">
   <div class="env"><div class="ebody"></div><div class="flap"></div><div class="wax">H</div></div>
   <div class="seal-done">Kept. Safe with you — only on this device.</div>
+  <div class="seal-options" id="sealOptions">
+    <button class="act send" id="sealEmailBtn">Also email it to myself</button>
+    <button class="act send" id="sealWaBtn">Also send to WhatsApp</button>
+    <button class="act send" id="sealLockerBtn">Also keep on this site</button>
+    <div id="sealLockerCode" style="display:none"></div>
+    <button class="act say" id="sealContinueBtn">Continue</button>
+  </div>
 </div>
 
 <script>
@@ -317,12 +338,46 @@ function burn(text){
   setTimeout(()=>b.classList.add('done'),1900);
   setTimeout(()=>b.classList.remove('on','go','done'),3600);
 }
-function sealEnvelope(done){
+function sealEnvelope(payload,done){
   const s=document.getElementById('seal'); s.classList.add('on');
   requestAnimationFrame(()=>s.classList.add('fold'));
   setTimeout(()=>s.classList.add('stamp'),640);
   setTimeout(()=>s.classList.add('done'),1150);
-  setTimeout(()=>{ s.classList.remove('on','fold','stamp','done'); if(done)done(); },2450);
+
+  const codeBox=document.getElementById('sealLockerCode'); codeBox.style.display='none'; codeBox.innerHTML='';
+  const emailBtn=document.getElementById('sealEmailBtn'); emailBtn.disabled=false; emailBtn.textContent='Also email it to myself';
+  const waBtn=document.getElementById('sealWaBtn'); waBtn.disabled=false; waBtn.textContent='Also send to WhatsApp';
+  const lockerBtn=document.getElementById('sealLockerBtn'); lockerBtn.disabled=false; lockerBtn.textContent='Also keep on this site'; lockerBtn.style.display='';
+
+  emailBtn.onclick=async()=>{
+    let attachment=null;
+    if(payload.blob){ attachment={filename:payload.filename,base64:await blobToBase64(payload.blob),contentType:payload.contentType}; }
+    await sendToEmail(payload.type,payload.text||null,attachment,emailBtn);
+  };
+  waBtn.onclick=async()=>{
+    if(payload.type==='text'){ window.open('https://wa.me/?text='+encodeURIComponent(payload.text),'_blank'); }
+    else{ await shareViaFile(payload.blob,payload.filename,payload.contentType,'From Heard.ke'); }
+  };
+  lockerBtn.onclick=async()=>{
+    lockerBtn.disabled=true; lockerBtn.textContent='Saving…';
+    try{
+      let attachment=null;
+      if(payload.blob){ attachment={filename:payload.filename,base64:await blobToBase64(payload.blob),contentType:payload.contentType}; }
+      const res=await fetch(API_BASE+'/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:payload.type,text:payload.text||null,attachment})});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||'failed');
+      codeBox.style.display='block';
+      codeBox.innerHTML='<div class="code">'+esc(data.code)+'</div><p>Save this code — it’s the only way to get this back, and anyone with it can open it. Nothing else identifies you.</p>';
+      lockerBtn.style.display='none';
+    }catch(e){
+      alert('Couldn’t keep it on the site right now — try again in a moment.');
+      lockerBtn.disabled=false; lockerBtn.textContent='Also keep on this site';
+    }
+  };
+  document.getElementById('sealContinueBtn').onclick=()=>{
+    s.classList.remove('on','fold','stamp','done');
+    if(done)done();
+  };
 }
 
 /* ---------- WRITE ---------- */
@@ -333,7 +388,7 @@ dump.addEventListener('input',()=>{
   document.getElementById('nudgeW').style.display=heavy?'block':'none';
 });
 function releaseText(){ const t=dump.value.trim(); burn(t? (t.length>90?t.slice(0,90)+'…':t):''); dump.value=''; document.getElementById('nudgeW').style.display='none'; }
-async function keepText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} items.unshift({id:Date.now(),ts:Date.now(),type:'text',data:t}); await saveItems(); dump.value=''; sealEnvelope(()=>switchMode('kept')); }
+async function keepText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} items.unshift({id:Date.now(),ts:Date.now(),type:'text',data:t}); await saveItems(); dump.value=''; sealEnvelope({type:'text',text:t},()=>switchMode('kept')); }
 function sayIt(){ const t=dump.value.trim(); switchMode('wall'); if(t) wallDump.value=t; }
 
 /* ---------- WALL ---------- */
@@ -523,7 +578,7 @@ function resetVoice(){ recBlob=null; document.getElementById('relVoice').disable
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
-function keepVoice(){ if(!recBlob)return; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope(()=>switchMode('kept')); }; fr.readAsDataURL(recBlob); }
+function keepVoice(){ if(!recBlob)return; const blob=recBlob; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.webm',contentType:'audio/webm'},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
 async function sendVoice(){
   if(!recBlob)return;
   const btn=document.getElementById('sendVoice');
@@ -550,7 +605,7 @@ canvas.addEventListener('pointerup',()=>{drawing=false;});
 canvas.addEventListener('pointerleave',()=>{drawing=false;});
 function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); dirty=false; }
 function releaseDraw(){ if(!dirty){return;} canvas.classList.add('gone'); setTimeout(()=>{clearCanvas();canvas.classList.remove('gone');},850); burn('Out of your hands now.'); }
-async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); clearCanvas(); sealEnvelope(()=>switchMode('kept')); }
+async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); canvas.toBlob(blob=>{ clearCanvas(); sealEnvelope({type:'draw',blob,filename:'heard-ke-drawing-'+stamp()+'.png',contentType:'image/png'},()=>switchMode('kept')); }); }
 function sendDraw(){
   if(!dirty)return;
   canvas.toBlob(async b=>{
@@ -577,6 +632,27 @@ function renderKept(){
 }
 async function removeItem(id){ items=items.filter(i=>i.id!==id); await saveItems(); renderKept(); }
 function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+async function redeemLockerCode(){
+  const input=document.getElementById('lockerCodeInput');
+  const code=input.value.trim().toUpperCase();
+  const el=document.getElementById('lockerResult');
+  if(!code){ input.focus(); return; }
+  el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Looking it up…</p>';
+  try{
+    const res=await fetch(API_BASE+'/api/locker/'+encodeURIComponent(code));
+    if(res.status===404){ el.innerHTML='<p style="color:var(--muted);font-size:.9rem">No entry found for that code.</p>'; return; }
+    if(!res.ok) throw new Error('failed');
+    const data=await res.json();
+    let body='';
+    if(data.type==='text') body=`<div class="txt">${esc(data.text||'')}</div>`;
+    else if(data.type==='audio') body=`<audio controls src="data:${data.attachment.contentType};base64,${data.attachment.base64}" style="width:100%"></audio>`;
+    else if(data.type==='draw') body=`<img src="data:${data.attachment.contentType};base64,${data.attachment.base64}" alt="kept drawing">`;
+    el.innerHTML=`<div class="item"><div class="meta"><span class="ty">${data.type}</span><span>opened just now</span></div>${body}</div>`;
+  }catch(e){
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t reach the site right now. Try again in a moment.</p>';
+  }
+}
 </script>
 </body>
 </html>
