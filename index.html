@@ -65,6 +65,8 @@
   .act.say:hover{border-color:var(--olive)}
   .act.send{background:transparent;border:1px solid var(--line);color:var(--olive)}
   .act.send:hover{border-color:var(--olive)}
+  .send-choice{display:none;gap:11px;margin-top:-2px}
+  .send-choice.on{display:grid}
 
   /* speak */
   .rec-stage{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center}
@@ -208,8 +210,11 @@
       <button class="act release" onclick="releaseText()">Release it <small>Let it burn. Nothing is saved.</small></button>
       <button class="act keep" onclick="keepText()">Keep it <small>Store it privately, only on this device.</small></button>
       <button class="act say" onclick="sayIt('write')">Say it anonymously <small>Other men will hear you — no name attached.</small></button>
-      <button class="act send" onclick="sendText()">Send it to myself <small>Download it to keep, or email it on.</small></button>
-      <button class="act send" onclick="shareWhatsAppText()">Send to WhatsApp <small>Opens WhatsApp with it ready to send.</small></button>
+      <button class="act send" onclick="toggleSendChoice('write')">Send it to myself <small>Choose email or WhatsApp.</small></button>
+      <div class="send-choice" id="sendChoice-write">
+        <button class="act send" onclick="sendText('email')">Email it <small>We'll ask for your address.</small></button>
+        <button class="act send" onclick="sendText('whatsapp')">WhatsApp it <small>Opens WhatsApp, ready to send.</small></button>
+      </div>
     </div>
   </section>
 
@@ -226,8 +231,11 @@
     <div class="actions">
       <button class="act release" id="relVoice" onclick="releaseVoice()" disabled>Release it <small>Say it, then let it go. Nothing is saved.</small></button>
       <button class="act keep" id="keepVoice" onclick="keepVoice()" disabled>Keep it <small>Save the recording privately on this device.</small></button>
-      <button class="act send" id="sendVoice" onclick="sendVoice()" disabled>Send it to myself <small>Download the recording to your device.</small></button>
-      <button class="act send" id="waVoice" onclick="shareWhatsAppVoice()" disabled>Send to WhatsApp <small>Share the recording via WhatsApp.</small></button>
+      <button class="act send" id="sendVoice" onclick="toggleSendChoice('speak')" disabled>Send it to myself <small>Choose email or WhatsApp.</small></button>
+      <div class="send-choice" id="sendChoice-speak">
+        <button class="act send" onclick="sendVoice('email')">Email it <small>We'll ask for your address.</small></button>
+        <button class="act send" onclick="sendVoice('whatsapp')">WhatsApp it <small>Share the recording via WhatsApp.</small></button>
+      </div>
     </div>
   </section>
 
@@ -245,8 +253,11 @@
     <div class="actions">
       <button class="act release" onclick="releaseDraw()">Release it <small>Watch it dissolve. Nothing is saved.</small></button>
       <button class="act keep" onclick="keepDraw()">Keep it <small>Save the drawing privately on this device.</small></button>
-      <button class="act send" onclick="sendDraw()">Send it to myself <small>Download the drawing to your device.</small></button>
-      <button class="act send" onclick="shareWhatsAppDraw()">Send to WhatsApp <small>Share the drawing via WhatsApp.</small></button>
+      <button class="act send" onclick="toggleSendChoice('draw')">Send it to myself <small>Choose email or WhatsApp.</small></button>
+      <div class="send-choice" id="sendChoice-draw">
+        <button class="act send" onclick="sendDraw('email')">Email it <small>We'll ask for your address.</small></button>
+        <button class="act send" onclick="sendDraw('whatsapp')">WhatsApp it <small>Share the drawing via WhatsApp.</small></button>
+      </div>
     </div>
   </section>
 
@@ -490,18 +501,9 @@ async function sendToEmail(type,text,attachment,btn){
     if(btn) btn.disabled=false;
   }
 }
-async function sendText(){
-  const t=dump.value.trim(); if(t.length<2){dump.focus();return;}
-  const btn=document.querySelector('#write .act.send');
-  const sent=await sendToEmail('text',t,null,btn);
-  if(!sent) downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt');
-}
-
-/* ---------- WHATSAPP SHARE (client-side, no backend) ---------- */
-function shareWhatsAppText(){
-  const t=dump.value.trim();
-  if(t.length<2){ dump.focus(); return; }
-  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+function toggleSendChoice(mode){
+  document.querySelectorAll('.send-choice').forEach(el=>{ if(el.id!=='sendChoice-'+mode) el.classList.remove('on'); });
+  document.getElementById('sendChoice-'+mode).classList.toggle('on');
 }
 async function shareViaFile(blob,filename,contentType,title){
   const file=new File([blob],filename,{type:contentType});
@@ -513,15 +515,13 @@ async function shareViaFile(blob,filename,contentType,title){
   downloadBlob(blob,filename);
   return false;
 }
-async function shareWhatsAppVoice(){
-  if(!recBlob) return;
-  await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.webm','audio/webm','Voice note from Heard.ke');
-}
-function shareWhatsAppDraw(){
-  if(!dirty) return;
-  canvas.toBlob(async b=>{
-    await shareViaFile(b,'heard-ke-drawing-'+stamp()+'.png','image/png','Drawing from Heard.ke');
-  });
+async function sendText(channel){
+  const t=dump.value.trim(); if(t.length<2){dump.focus();return;}
+  document.getElementById('sendChoice-write').classList.remove('on');
+  if(channel==='whatsapp'){ window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank'); return; }
+  const btn=document.querySelector('#sendChoice-write .act.send');
+  const sent=await sendToEmail('text',t,null,btn);
+  if(!sent) downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt');
 }
 
 /* ---------- SPEAK ---------- */
@@ -547,7 +547,6 @@ async function toggleRec(){
     document.getElementById('relVoice').disabled=false;
     document.getElementById('keepVoice').disabled=false;
     document.getElementById('sendVoice').disabled=false;
-    document.getElementById('waVoice').disabled=false;
   };
   mediaRec.start();
   recBtn.classList.add('recording');
@@ -574,14 +573,17 @@ function stopRec(){
   recBtn.classList.remove('recording');
   document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
 }
-function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('waVoice').disabled=true;
+function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true;
+  document.getElementById('sendChoice-speak').classList.remove('on');
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
 function keepVoice(){ if(!recBlob)return; const blob=recBlob; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.webm',contentType:'audio/webm'},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
-async function sendVoice(){
+async function sendVoice(channel){
   if(!recBlob)return;
-  const btn=document.getElementById('sendVoice');
+  document.getElementById('sendChoice-speak').classList.remove('on');
+  if(channel==='whatsapp'){ await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.webm','audio/webm','Voice note from Heard.ke'); return; }
+  const btn=document.querySelector('#sendChoice-speak .act.send');
   const base64=await blobToBase64(recBlob);
   const sent=await sendToEmail('audio',null,{filename:'heard-ke-voice-'+stamp()+'.webm',base64,contentType:'audio/webm'},btn);
   if(!sent) downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.webm');
@@ -606,10 +608,12 @@ canvas.addEventListener('pointerleave',()=>{drawing=false;});
 function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); dirty=false; }
 function releaseDraw(){ if(!dirty){return;} canvas.classList.add('gone'); setTimeout(()=>{clearCanvas();canvas.classList.remove('gone');},850); burn('Out of your hands now.'); }
 async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); canvas.toBlob(blob=>{ clearCanvas(); sealEnvelope({type:'draw',blob,filename:'heard-ke-drawing-'+stamp()+'.png',contentType:'image/png'},()=>switchMode('kept')); }); }
-function sendDraw(){
+function sendDraw(channel){
   if(!dirty)return;
+  document.getElementById('sendChoice-draw').classList.remove('on');
   canvas.toBlob(async b=>{
-    const btn=document.querySelector('#draw .act.send');
+    if(channel==='whatsapp'){ await shareViaFile(b,'heard-ke-drawing-'+stamp()+'.png','image/png','Drawing from Heard.ke'); return; }
+    const btn=document.querySelector('#sendChoice-draw .act.send');
     const base64=await blobToBase64(b);
     const sent=await sendToEmail('draw',null,{filename:'heard-ke-drawing-'+stamp()+'.png',base64,contentType:'image/png'},btn);
     if(!sent) downloadBlob(b,'heard-ke-drawing-'+stamp()+'.png');
