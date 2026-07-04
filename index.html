@@ -203,6 +203,7 @@
       <button class="act keep" onclick="keepText()">Keep it <small>Store it privately, only on this device.</small></button>
       <button class="act say" onclick="sayIt('write')">Say it anonymously <small>Other men will hear you — no name attached.</small></button>
       <button class="act send" onclick="sendText()">Send it to myself <small>Download it to keep, or email it on.</small></button>
+      <button class="act send" onclick="shareWhatsAppText()">Send to WhatsApp <small>Opens WhatsApp with it ready to send.</small></button>
     </div>
   </section>
 
@@ -220,6 +221,7 @@
       <button class="act release" id="relVoice" onclick="releaseVoice()" disabled>Release it <small>Say it, then let it go. Nothing is saved.</small></button>
       <button class="act keep" id="keepVoice" onclick="keepVoice()" disabled>Keep it <small>Save the recording privately on this device.</small></button>
       <button class="act send" id="sendVoice" onclick="sendVoice()" disabled>Send it to myself <small>Download the recording to your device.</small></button>
+      <button class="act send" id="waVoice" onclick="shareWhatsAppVoice()" disabled>Send to WhatsApp <small>Share the recording via WhatsApp.</small></button>
     </div>
   </section>
 
@@ -238,6 +240,7 @@
       <button class="act release" onclick="releaseDraw()">Release it <small>Watch it dissolve. Nothing is saved.</small></button>
       <button class="act keep" onclick="keepDraw()">Keep it <small>Save the drawing privately on this device.</small></button>
       <button class="act send" onclick="sendDraw()">Send it to myself <small>Download the drawing to your device.</small></button>
+      <button class="act send" onclick="shareWhatsAppDraw()">Send to WhatsApp <small>Share the drawing via WhatsApp.</small></button>
     </div>
   </section>
 
@@ -439,6 +442,33 @@ async function sendText(){
   if(!sent) downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt');
 }
 
+/* ---------- WHATSAPP SHARE (client-side, no backend) ---------- */
+function shareWhatsAppText(){
+  const t=dump.value.trim();
+  if(t.length<2){ dump.focus(); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+}
+async function shareViaFile(blob,filename,contentType,title){
+  const file=new File([blob],filename,{type:contentType});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title}); return true; }
+    catch(e){ if(e && e.name==='AbortError') return true; }
+  }
+  alert('Your browser can’t share files directly to WhatsApp. Downloading it instead — you can attach it manually in WhatsApp.');
+  downloadBlob(blob,filename);
+  return false;
+}
+async function shareWhatsAppVoice(){
+  if(!recBlob) return;
+  await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.webm','audio/webm','Voice note from Heard.ke');
+}
+function shareWhatsAppDraw(){
+  if(!dirty) return;
+  canvas.toBlob(async b=>{
+    await shareViaFile(b,'heard-ke-drawing-'+stamp()+'.png','image/png','Drawing from Heard.ke');
+  });
+}
+
 /* ---------- SPEAK ---------- */
 let mediaRec, chunks=[], recBlob=null, stream=null, audioCtx, analyser, rafId, seconds=0, timerId;
 const levels=document.getElementById('levels');
@@ -462,6 +492,7 @@ async function toggleRec(){
     document.getElementById('relVoice').disabled=false;
     document.getElementById('keepVoice').disabled=false;
     document.getElementById('sendVoice').disabled=false;
+    document.getElementById('waVoice').disabled=false;
   };
   mediaRec.start();
   recBtn.classList.add('recording');
@@ -488,7 +519,7 @@ function stopRec(){
   recBtn.classList.remove('recording');
   document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
 }
-function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true;
+function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('waVoice').disabled=true;
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
