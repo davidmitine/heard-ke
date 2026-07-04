@@ -176,6 +176,18 @@ function escapeHtml(s) {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+// TEMPORARY diagnostic — remove once RESEND_API_KEY issue is resolved
+app.get('/api/_debug-env', (req, res) => {
+  const k = process.env.RESEND_API_KEY || '';
+  res.json({
+    length: k.length,
+    startsWith: k.slice(0, 4),
+    endsWith: k.slice(-4),
+    hasWhitespace: /\s/.test(k),
+    mailFrom: process.env.MAIL_FROM || null
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Heard.ke server listening on port ${PORT}`);
 });
