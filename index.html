@@ -525,7 +525,20 @@ async function sendText(channel){
 }
 
 /* ---------- SPEAK ---------- */
-let mediaRec, chunks=[], recBlob=null, stream=null, audioCtx, analyser, rafId, seconds=0, timerId;
+let mediaRec, chunks=[], recBlob=null, stream=null, audioCtx, analyser, rafId, seconds=0, timerId, recMimeType='audio/webm';
+function pickRecordingMimeType(){
+  const candidates=['audio/webm','audio/mp4','audio/ogg','audio/wav'];
+  for(const t of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+function extForMimeType(t){
+  if(t.includes('mp4')) return 'm4a';
+  if(t.includes('ogg')) return 'ogg';
+  if(t.includes('wav')) return 'wav';
+  return 'webm';
+}
 const levels=document.getElementById('levels');
 for(let i=0;i<9;i++){const b=document.createElement('i');levels.appendChild(b);}
 const bars=[...levels.children];
@@ -538,10 +551,13 @@ async function toggleRec(){
     stream=await navigator.mediaDevices.getUserMedia({audio:true});
   }catch(e){ document.getElementById('micErr').classList.add('on'); return; }
   document.getElementById('micErr').classList.remove('on');
-  chunks=[]; mediaRec=new MediaRecorder(stream);
+  chunks=[];
+  recMimeType=pickRecordingMimeType();
+  mediaRec=recMimeType?new MediaRecorder(stream,{mimeType:recMimeType}):new MediaRecorder(stream);
   mediaRec.ondataavailable=e=>chunks.push(e.data);
   mediaRec.onstop=()=>{
-    recBlob=new Blob(chunks,{type:'audio/webm'});
+    recMimeType=mediaRec.mimeType||recMimeType||'audio/webm';
+    recBlob=new Blob(chunks,{type:recMimeType});
     const url=URL.createObjectURL(recBlob);
     const p=document.getElementById('player'); p.src=url; p.style.display='block';
     document.getElementById('relVoice').disabled=false;
@@ -578,15 +594,16 @@ function resetVoice(){ recBlob=null; document.getElementById('relVoice').disable
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
-function keepVoice(){ if(!recBlob)return; const blob=recBlob; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.webm',contentType:'audio/webm'},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
+function keepVoice(){ if(!recBlob)return; const blob=recBlob; const mt=recMimeType; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.'+extForMimeType(mt),contentType:mt},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
 async function sendVoice(channel){
   if(!recBlob)return;
   document.getElementById('sendChoice-speak').classList.remove('on');
-  if(channel==='whatsapp'){ await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.webm','audio/webm','Voice note from Heard.ke'); return; }
+  const ext=extForMimeType(recMimeType);
+  if(channel==='whatsapp'){ await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.'+ext,recMimeType,'Voice note from Heard.ke'); return; }
   const btn=document.querySelector('#sendChoice-speak .act.send');
   const base64=await blobToBase64(recBlob);
-  const sent=await sendToEmail('audio',null,{filename:'heard-ke-voice-'+stamp()+'.webm',base64,contentType:'audio/webm'},btn);
-  if(!sent) downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.webm');
+  const sent=await sendToEmail('audio',null,{filename:'heard-ke-voice-'+stamp()+'.'+ext,base64,contentType:recMimeType},btn);
+  if(!sent) downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.'+ext);
 }
 
 /* ---------- DRAW ---------- */
