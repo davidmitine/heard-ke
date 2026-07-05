@@ -247,6 +247,7 @@
         <button class="act send" onclick="sendVoice('email')">Email it <small>We'll ask for your address.</small></button>
         <button class="act send" onclick="sendVoice('whatsapp')">WhatsApp it <small>Share the recording via WhatsApp.</small></button>
       </div>
+      <button class="act say" id="reRecordVoice" onclick="resetVoice()" disabled>Record again <small>Discard this and start over.</small></button>
     </div>
   </section>
 
@@ -641,6 +642,7 @@ async function toggleRec(){
     document.getElementById('relVoice').disabled=false;
     document.getElementById('keepVoice').disabled=false;
     document.getElementById('sendVoice').disabled=false;
+    document.getElementById('reRecordVoice').disabled=false;
     document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
   };
   mediaRec.start();
@@ -668,7 +670,7 @@ function stopRec(){
   recBtn.classList.remove('recording');
   document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
 }
-function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true;
+function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('reRecordVoice').disabled=true;
   document.getElementById('sendChoice-speak').classList.remove('on');
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
