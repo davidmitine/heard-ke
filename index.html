@@ -202,7 +202,6 @@
     <button class="tab" data-m="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Speak</button>
     <button class="tab" data-m="draw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21l3-1L20 6a2 2 0 0 0-3-3L3 17z"/></svg>Draw</button>
     <button class="tab" data-m="wall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>Wall</button>
-    <button class="tab" data-m="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M12 4c-2-1-5-1-8 0v14c3-1 6-1 8 0c2-1 5-1 8 0V4c-3-1-6-1-8 0z"/></svg>Guide</button>
     <button class="tab" data-m="kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Kept</button>
   </div>
 
@@ -284,12 +283,14 @@
     </div>
     <div class="actions">
       <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you — no name attached.</small></button>
+      <button class="act send" onclick="switchMode('guide')">Advice &amp; resources <small>Guidance, hotlines, books, and music.</small></button>
     </div>
     <div id="wallFeed" style="margin-top:22px"></div>
   </section>
 
   <!-- GUIDE -->
   <section class="mode" id="guide">
+    <button class="clearbtn" style="margin-bottom:16px" onclick="switchMode('wall')">← Back to Wall</button>
     <p class="eyebrow" style="margin-bottom:10px">Advice</p>
     <div class="item"><div class="txt"><strong>Stress creeping up on you?</strong><br>Notice where you feel it in your body before it takes over — jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.</div></div>
     <div class="item"><div class="txt"><strong>Angry and don't know where to put it?</strong><br>Anger is usually a cover for something softer — hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.</div></div>
