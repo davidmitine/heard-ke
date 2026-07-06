@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Heard.ke — Let it out</title>
-<meta name="description" content="A safe, private space for men to let it out. Write it, say it, or draw it — then release what burdens you. No name, no account, no download.">
+<title>Heard.ke: Let it out</title>
+<meta name="description" content="A safe, private space for men to let it out. Write it, say it, or draw it, then release what burdens you. No name, no account, no download.">
 <meta name="theme-color" content="#211913">
-<meta property="og:title" content="Heard.ke — Let it out">
-<meta property="og:description" content="A safe, private space for men to release what burdens you. Write it, say it, or draw it — then let it go.">
+<meta property="og:title" content="Heard.ke: Let it out">
+<meta property="og:description" content="A safe, private space for men to release what burdens you. Write it, say it, or draw it, then let it go.">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='26' fill='%23211913'/><g fill='%23efe7d9'><rect x='18' y='46' width='11' height='30' rx='5.5'/><rect x='35' y='36' width='11' height='50' rx='5.5'/><rect x='76' y='36' width='11' height='50' rx='5.5'/><rect x='93' y='46' width='11' height='30' rx='5.5'/></g><circle cx='61' cy='30' r='8' fill='%23e6a95c'/><rect x='55.5' y='42' width='11' height='46' rx='5.5' fill='%23e6a95c'/></svg>">
 <meta name="referrer" content="no-referrer">
@@ -193,8 +193,8 @@
   <div class="intro">
     <p class="eyebrow">No name. No account. No download.</p>
     <h1>Let it out.</h1>
-    <p class="welcome">We know you’re going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
-    <p class="intro-sub">Write it, say it, or draw it — then choose what happens to it.</p>
+    <p class="welcome">We know you're going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
+    <p class="intro-sub">Write it, say it, or draw it, then choose what happens to it.</p>
   </div>
 
   <div class="tabs" role="tablist">
@@ -215,7 +215,7 @@
     <div class="actions">
       <button class="act release" onclick="releaseText()">Release it <small>Let it burn. Nothing is saved.</small></button>
       <button class="act keep" onclick="keepText()">Keep it <small>Store it privately, only on this device.</small></button>
-      <button class="act say" onclick="sayIt('write')">Say it anonymously <small>Other men will hear you — no name attached.</small></button>
+      <button class="act say" onclick="sayIt('write')">Say it anonymously <small>Other men will hear you. No name attached.</small></button>
       <button class="act send" onclick="toggleSendChoice('write')">Send it to myself <small>Choose email or WhatsApp.</small></button>
       <div class="send-choice" id="sendChoice-write">
         <button class="act send" onclick="sendText('email')">Email it <small>We'll ask for your address.</small></button>
@@ -235,7 +235,7 @@
       </div>
       <div class="levels" id="levels"></div>
       <button class="rec-btn" id="recBtn" aria-label="Record"><span class="glyph"></span></button>
-      <div class="rec-label" id="recLabel">Tap to speak. Say it out loud — nobody else hears it.</div>
+      <div class="rec-label" id="recLabel">Tap to speak. Say it out loud. Nobody else hears it.</div>
       <div class="timer" id="timer" style="display:none">0:00</div>
       <audio id="player" controls style="display:none"></audio>
       <div class="mic-err" id="micErr">Your browser blocked the microphone here. On the live Heard.ke site (over https) this works fine. For now, try <b>Write</b> or <b>Draw</b>.</div>
@@ -276,13 +276,13 @@
 
   <!-- WALL -->
   <section class="mode" id="wall">
-    <textarea id="wallDump" placeholder="Say it here. Other men will read this — no name attached, ever." maxlength="2000"></textarea>
+    <textarea id="wallDump" placeholder="Say it here. Other men will read this. No name attached, ever." maxlength="2000"></textarea>
     <div class="nudge" id="nudgeWall" style="display:none">
       <p>That's a lot to carry on your own. You don't have to. A real person is on the line, any time.</p>
       <a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>
     </div>
     <div class="actions">
-      <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you — no name attached.</small></button>
+      <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you. No name attached.</small></button>
       <button class="act send" onclick="switchMode('guide')">Advice &amp; resources <small>Guidance, hotlines, books, and music.</small></button>
     </div>
     <div id="wallFeed" style="margin-top:22px"></div>
@@ -292,28 +292,28 @@
   <section class="mode" id="guide">
     <button class="clearbtn" style="margin-bottom:16px" onclick="switchMode('wall')">← Back to Wall</button>
     <p class="eyebrow" style="margin-bottom:10px">Advice</p>
-    <div class="item"><div class="txt"><strong>Stress creeping up on you?</strong><br>Notice where you feel it in your body before it takes over — jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.</div></div>
-    <div class="item"><div class="txt"><strong>Angry and don't know where to put it?</strong><br>Anger is usually a cover for something softer — hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.</div></div>
+    <div class="item"><div class="txt"><strong>Stress creeping up on you?</strong><br>Notice where you feel it in your body before it takes over: jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.</div></div>
+    <div class="item"><div class="txt"><strong>Angry and don't know where to put it?</strong><br>Anger is usually a cover for something softer: hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.</div></div>
     <div class="item"><div class="txt"><strong>Not sleeping well?</strong><br>A racing mind at night is often the day's undealt-with stuff surfacing. Writing it down (even just a list, even in the Write tab) before bed can get it out of your head so it stops running in loops.</div></div>
-    <div class="item"><div class="txt"><strong>Struggling in a relationship?</strong><br>Most fights aren't about the dishes or being late — they're about feeling unseen. Try naming the feeling under the complaint out loud. It's uncomfortable, and it works better than arguing the surface issue.</div></div>
-    <div class="item"><div class="txt"><strong>When it feels like too much</strong><br>You don't have to have the words figured out. Call or text someone — a friend, a helpline, anyone — before you're sure what you'll say. The reaching out matters more than the script.</div></div>
+    <div class="item"><div class="txt"><strong>Struggling in a relationship?</strong><br>Most fights aren't about the dishes or being late. They're about feeling unseen. Try naming the feeling under the complaint out loud. It's uncomfortable, and it works better than arguing the surface issue.</div></div>
+    <div class="item"><div class="txt"><strong>When it feels like too much</strong><br>You don't have to have the words figured out. Call or text someone (a friend, a helpline, anyone) before you're sure what you'll say. The reaching out matters more than the script.</div></div>
 
     <p class="eyebrow" style="margin:26px 0 10px">Talk to someone</p>
-    <div class="item"><div class="txt"><strong>Befrienders Kenya</strong> — free, confidential emotional support, any time.<br><a href="tel:+254722178177" style="color:var(--amber-soft)">0722 178 177</a></div></div>
-    <div class="item"><div class="txt"><strong>Kenya Red Cross Emergency Line</strong> — for urgent medical or safety emergencies.<br><a href="tel:1199" style="color:var(--amber-soft)">1199</a></div></div>
-    <div class="item"><div class="txt"><strong>National Police / Ambulance</strong> — if you or someone else is in immediate danger.<br><a href="tel:999" style="color:var(--amber-soft)">999</a> or <a href="tel:112" style="color:var(--amber-soft)">112</a></div></div>
-    <p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive — a hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>
+    <div class="item"><div class="txt"><strong>Befrienders Kenya</strong>: free, confidential emotional support, any time.<br><a href="tel:+254722178177" style="color:var(--amber-soft)">0722 178 177</a></div></div>
+    <div class="item"><div class="txt"><strong>Kenya Red Cross Emergency Line</strong>: for urgent medical or safety emergencies.<br><a href="tel:1199" style="color:var(--amber-soft)">1199</a></div></div>
+    <div class="item"><div class="txt"><strong>National Police / Ambulance</strong>: if you or someone else is in immediate danger.<br><a href="tel:999" style="color:var(--amber-soft)">999</a> or <a href="tel:112" style="color:var(--amber-soft)">112</a></div></div>
+    <p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive. A hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>
 
     <p class="eyebrow" style="margin:26px 0 10px">Worth reading</p>
-    <div class="item"><div class="txt">📖 <strong>Man's Search for Meaning</strong> — Viktor Frankl</div></div>
-    <div class="item"><div class="txt">📖 <strong>The Body Keeps the Score</strong> — Bessel van der Kolk</div></div>
-    <div class="item"><div class="txt">📖 <strong>No More Mr Nice Guy</strong> — Robert Glover</div></div>
-    <div class="item"><div class="txt">📖 <strong>Atlas of the Heart</strong> — Brené Brown</div></div>
+    <div class="item"><div class="txt">📖 <strong>Man's Search for Meaning</strong>, by Viktor Frankl</div></div>
+    <div class="item"><div class="txt">📖 <strong>The Body Keeps the Score</strong>, by Bessel van der Kolk</div></div>
+    <div class="item"><div class="txt">📖 <strong>No More Mr Nice Guy</strong>, by Robert Glover</div></div>
+    <div class="item"><div class="txt">📖 <strong>Atlas of the Heart</strong>, by Brené Brown</div></div>
 
     <p class="eyebrow" style="margin:26px 0 10px">Something to put on</p>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/calming%20instrumental" target="_blank" rel="noopener" style="color:var(--amber-soft)">Calming instrumental</a> — for winding down</div></div>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/lofi%20focus" target="_blank" rel="noopener" style="color:var(--amber-soft)">Lo-fi focus</a> — for getting things done</div></div>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/afrobeat%20chill" target="_blank" rel="noopener" style="color:var(--amber-soft)">Afrobeat, chilled</a> — for lifting the mood</div></div>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/calming%20instrumental" target="_blank" rel="noopener" style="color:var(--amber-soft)">Calming instrumental</a>, for winding down</div></div>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/lofi%20focus" target="_blank" rel="noopener" style="color:var(--amber-soft)">Lo-fi focus</a>, for getting things done</div></div>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/afrobeat%20chill" target="_blank" rel="noopener" style="color:var(--amber-soft)">Afrobeat, chilled</a>, good for lifting the mood</div></div>
   </section>
 
   <!-- KEPT -->
@@ -331,7 +331,7 @@
 
   <div class="connect">
     <h2>Want some good company?</h2>
-    <p>Some weight lifts better with other men around — a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.</p>
+    <p>Some weight lifts better with other men around: a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.</p>
     <div id="eventsList"></div>
   </div>
 
@@ -346,7 +346,7 @@
 
 <div class="seal" id="seal" aria-hidden="true">
   <div class="env"><div class="ebody"></div><div class="flap"></div><div class="wax">H</div></div>
-  <div class="seal-done">Kept. Safe with you — only on this device.</div>
+  <div class="seal-done">Kept. Safe with you, only on this device.</div>
   <div class="seal-options" id="sealOptions">
     <button class="act send" id="sealEmailBtn">Also email it to myself</button>
     <button class="act send" id="sealWaBtn">Also send to WhatsApp</button>
@@ -380,7 +380,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>swit
 const KEY='heardke_release_items';
 let items=[];
 function loadItems(){ try{ const raw=localStorage.getItem(KEY); if(raw) items=JSON.parse(raw)||[]; }catch(e){ items=[]; } }
-function saveItems(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ if(e&&e.name==='QuotaExceededError'){ alert('This device’s storage is full — try keeping shorter notes or fewer voice clips.'); } } }
+function saveItems(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ if(e&&e.name==='QuotaExceededError'){ alert('This device\'s storage is full. Try keeping shorter notes or fewer voice clips.'); } } }
 loadItems();
 
 /* ---------- burn overlay ---------- */
@@ -420,10 +420,10 @@ function sealEnvelope(payload,done){
       const data=await res.json();
       if(!res.ok) throw new Error(data.error||'failed');
       codeBox.style.display='block';
-      codeBox.innerHTML='<div class="code">'+esc(data.code)+'</div><p>Save this code — it’s the only way to get this back, and anyone with it can open it. Nothing else identifies you.</p>';
+      codeBox.innerHTML='<div class="code">'+esc(data.code)+'</div><p>Save this code. It\'s the only way to get this back, and anyone with it can open it. Nothing else identifies you.</p>';
       lockerBtn.style.display='none';
     }catch(e){
-      alert('Couldn’t keep it on the site right now — try again in a moment.');
+      alert('Couldn\'t keep it on the site right now. Try again in a moment.');
       lockerBtn.disabled=false; lockerBtn.textContent='Also keep on this site';
     }
   };
@@ -461,7 +461,7 @@ async function loadWall(){
     if(!posts.length){ el.innerHTML='<div class="empty"><div class="big">Nobody\'s posted yet.</div><p>Be the first to say it.</p></div>'; return; }
     el.innerHTML=posts.map(p=>`<div class="item"><div class="meta"><span>${timeAgo(p.ts)}</span><button class="del" onclick="reportPost(${p.id})">report</button></div><div class="txt">${esc(p.text)}</div></div>`).join('');
   }catch(e){
-    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t reach the wall right now. Try again in a moment.</p>';
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t reach the wall right now. Try again in a moment.</p>';
   }
 }
 async function postToWall(){
@@ -475,7 +475,7 @@ async function postToWall(){
     wallDump.value=''; document.getElementById('nudgeWall').style.display='none';
     await loadWall();
   }catch(e){
-    alert('Couldn’t post right now — check your connection and try again.');
+    alert('Couldn\'t post right now. Check your connection and try again.');
   }finally{ btn.disabled=false; }
 }
 async function reportPost(id){
@@ -490,14 +490,14 @@ async function loadEvents(){
     const res=await fetch(API_BASE+'/api/events');
     if(!res.ok) throw new Error('bad response');
     const events=await res.json();
-    if(!events.length){ el.innerHTML='<p style="color:var(--muted);font-size:.9rem">No meetups scheduled right now — check back soon.</p>'; return; }
+    if(!events.length){ el.innerHTML='<p style="color:var(--muted);font-size:.9rem">No meetups scheduled right now. Check back soon.</p>'; return; }
     el.innerHTML=events.map(ev=>{
       const d=new Date(ev.datetime);
       const when=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
       return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${ev.location}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div><button class="connect-btn" style="width:100%" onclick="rsvpEvent(${ev.id},this)">I'm in · ${ev.rsvp_count} going</button></div>`;
     }).join('');
   }catch(e){
-    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t load meetups right now. Try again in a moment.</p>';
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t load meetups right now. Try again in a moment.</p>';
   }
 }
 async function rsvpEvent(id,btn){
@@ -509,7 +509,7 @@ async function rsvpEvent(id,btn){
     btn.textContent="You're in · "+data.rsvp_count+' going';
   }catch(e){
     btn.disabled=false;
-    alert('Couldn’t RSVP right now — check your connection and try again.');
+    alert('Couldn\'t RSVP right now. Check your connection and try again.');
   }
 }
 loadEvents();
@@ -537,7 +537,7 @@ async function sendToEmail(type,text,attachment,btn){
     alert('Sent to '+trimmed+'.');
     return true;
   }catch(e){
-    alert('Couldn’t email it right now — downloading it to your device instead.');
+    alert('Couldn\'t email it right now. Downloading it to your device instead.');
     return false;
   }finally{
     if(btn) btn.disabled=false;
@@ -553,7 +553,7 @@ async function shareViaFile(blob,filename,contentType,title){
     try{ await navigator.share({files:[file],title}); return true; }
     catch(e){ if(e && e.name==='AbortError') return true; }
   }
-  alert('Your browser can’t share files directly to WhatsApp. Downloading it instead — you can attach it manually in WhatsApp.');
+  alert('Your browser can\'t share files directly to WhatsApp. Downloading it instead, so you can attach it manually in WhatsApp.');
   downloadBlob(blob,filename);
   return false;
 }
@@ -664,7 +664,7 @@ async function toggleRec(){
         recBlob=await applyVoiceDisguise(recBlob,selectedPreset());
         recMimeType='audio/wav';
       }catch(e){
-        alert('Couldn’t disguise your voice this time — keeping your original recording instead.');
+        alert('Couldn\'t disguise your voice this time. Keeping your original recording instead.');
       }
     }
     const url=URL.createObjectURL(recBlob);
@@ -703,7 +703,7 @@ function stopRec(){
 function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('reRecordVoice').disabled=true;
   document.getElementById('sendChoice-speak').classList.remove('on');
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
-  document.getElementById('recLabel').textContent='Tap to speak. Say it out loud — nobody else hears it.'; }
+  document.getElementById('recLabel').textContent='Tap to speak. Say it out loud. Nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
 function keepVoice(){ if(!recBlob)return; const blob=recBlob; const mt=recMimeType; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.'+extForMimeType(mt),contentType:mt},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
 async function sendVoice(channel){
@@ -753,7 +753,7 @@ fitCanvas();
 function timeAgo(ts){const d=(Date.now()-ts)/1000; if(d<60)return'just now'; if(d<3600)return Math.floor(d/60)+'m ago'; if(d<86400)return Math.floor(d/3600)+'h ago'; return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function renderKept(){
   const el=document.getElementById('keptList');
-  if(!items.length){ el.innerHTML='<div class="empty"><div class="big">Nothing kept.</div><p>What you choose to keep lives here — private, only on this device. Everything else you release is gone for good.</p></div>'; return; }
+  if(!items.length){ el.innerHTML='<div class="empty"><div class="big">Nothing kept.</div><p>What you choose to keep lives here, private and only on this device. Everything else you release is gone for good.</p></div>'; return; }
   el.innerHTML=items.map(it=>{
     let body='';
     if(it.type==='text')body=`<div class="txt">${esc(it.data)}</div>`;
@@ -782,7 +782,7 @@ async function redeemLockerCode(){
     else if(data.type==='draw') body=`<img src="data:${data.attachment.contentType};base64,${data.attachment.base64}" alt="kept drawing">`;
     el.innerHTML=`<div class="item"><div class="meta"><span class="ty">${data.type}</span><span>opened just now</span></div>${body}</div>`;
   }catch(e){
-    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn’t reach the site right now. Try again in a moment.</p>';
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t reach the site right now. Try again in a moment.</p>';
   }
 }
 </script>
