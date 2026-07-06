@@ -40,8 +40,9 @@
   .intro .welcome{color:var(--cream);font-size:1.14rem;line-height:1.55;margin-top:12px;max-width:44ch}
   .intro .intro-sub{color:var(--muted);font-size:.95rem;margin-top:14px}
 
-  .tabs{display:flex;gap:5px;background:var(--bg-2);border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:24px}
-  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;font-weight:600;font-size:.8rem;color:var(--muted);background:none;border:none;padding:9px 4px;border-radius:999px;cursor:pointer;transition:.15s}
+  .tabs{display:flex;gap:5px;background:var(--bg-2);border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:1 0 auto;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;font-weight:600;font-size:.8rem;color:var(--muted);background:none;border:none;padding:9px 4px;border-radius:999px;cursor:pointer;transition:.15s}
   .tab svg{width:17px;height:17px}
   .tab.on{background:var(--amber);color:#2a1c10}
 
@@ -201,6 +202,7 @@
     <button class="tab" data-m="speak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Speak</button>
     <button class="tab" data-m="draw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21l3-1L20 6a2 2 0 0 0-3-3L3 17z"/></svg>Draw</button>
     <button class="tab" data-m="wall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>Wall</button>
+    <button class="tab" data-m="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M12 4c-2-1-5-1-8 0v14c3-1 6-1 8 0c2-1 5-1 8 0V4c-3-1-6-1-8 0z"/></svg>Guide</button>
     <button class="tab" data-m="kept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Kept</button>
   </div>
 
@@ -284,6 +286,33 @@
       <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you — no name attached.</small></button>
     </div>
     <div id="wallFeed" style="margin-top:22px"></div>
+  </section>
+
+  <!-- GUIDE -->
+  <section class="mode" id="guide">
+    <p class="eyebrow" style="margin-bottom:10px">Advice</p>
+    <div class="item"><div class="txt"><strong>Stress creeping up on you?</strong><br>Notice where you feel it in your body before it takes over — jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.</div></div>
+    <div class="item"><div class="txt"><strong>Angry and don't know where to put it?</strong><br>Anger is usually a cover for something softer — hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.</div></div>
+    <div class="item"><div class="txt"><strong>Not sleeping well?</strong><br>A racing mind at night is often the day's undealt-with stuff surfacing. Writing it down (even just a list, even in the Write tab) before bed can get it out of your head so it stops running in loops.</div></div>
+    <div class="item"><div class="txt"><strong>Struggling in a relationship?</strong><br>Most fights aren't about the dishes or being late — they're about feeling unseen. Try naming the feeling under the complaint out loud. It's uncomfortable, and it works better than arguing the surface issue.</div></div>
+    <div class="item"><div class="txt"><strong>When it feels like too much</strong><br>You don't have to have the words figured out. Call or text someone — a friend, a helpline, anyone — before you're sure what you'll say. The reaching out matters more than the script.</div></div>
+
+    <p class="eyebrow" style="margin:26px 0 10px">Talk to someone</p>
+    <div class="item"><div class="txt"><strong>Befrienders Kenya</strong> — free, confidential emotional support, any time.<br><a href="tel:+254722178177" style="color:var(--amber-soft)">0722 178 177</a></div></div>
+    <div class="item"><div class="txt"><strong>Kenya Red Cross Emergency Line</strong> — for urgent medical or safety emergencies.<br><a href="tel:1199" style="color:var(--amber-soft)">1199</a></div></div>
+    <div class="item"><div class="txt"><strong>National Police / Ambulance</strong> — if you or someone else is in immediate danger.<br><a href="tel:999" style="color:var(--amber-soft)">999</a> or <a href="tel:112" style="color:var(--amber-soft)">112</a></div></div>
+    <p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive — a hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>
+
+    <p class="eyebrow" style="margin:26px 0 10px">Worth reading</p>
+    <div class="item"><div class="txt">📖 <strong>Man's Search for Meaning</strong> — Viktor Frankl</div></div>
+    <div class="item"><div class="txt">📖 <strong>The Body Keeps the Score</strong> — Bessel van der Kolk</div></div>
+    <div class="item"><div class="txt">📖 <strong>No More Mr Nice Guy</strong> — Robert Glover</div></div>
+    <div class="item"><div class="txt">📖 <strong>Atlas of the Heart</strong> — Brené Brown</div></div>
+
+    <p class="eyebrow" style="margin:26px 0 10px">Something to put on</p>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/calming%20instrumental" target="_blank" rel="noopener" style="color:var(--amber-soft)">Calming instrumental</a> — for winding down</div></div>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/lofi%20focus" target="_blank" rel="noopener" style="color:var(--amber-soft)">Lo-fi focus</a> — for getting things done</div></div>
+    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/afrobeat%20chill" target="_blank" rel="noopener" style="color:var(--amber-soft)">Afrobeat, chilled</a> — for lifting the mood</div></div>
   </section>
 
   <!-- KEPT -->
