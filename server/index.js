@@ -53,6 +53,98 @@ function generateLockerCode() {
 function serializePost(row) {
   return { id: row.id, text: row.text, ts: row.ts, flagged: !!row.flagged };
 }
+function serializeAdminPost(row) {
+  return {
+    id: row.id,
+    text: row.text,
+    ts: row.ts,
+    flagged: !!row.flagged,
+    reports: row.reports,
+    status: row.status,
+    ai: row.ai_result ? JSON.parse(row.ai_result) : []
+  };
+}
+
+// ---------- moderation ----------
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ADMIN_KEY = process.env.ADMIN_KEY;
+const MODERATOR_EMAIL = process.env.MODERATOR_EMAIL || 'davidmitine@gmail.com';
+const ADMIN_URL = process.env.ADMIN_URL || 'https://www.heard.co.ke/admin.html';
+
+// Outward harm and abuse -> auto-reject so the owner never has to read it.
+// Every self-harm category is deliberately excluded: a man in crisis must reach
+// the review queue and see the helpline, never be silently dropped.
+const AUTO_REJECT = new Set([
+  'hate', 'hate/threatening',
+  'harassment/threatening',
+  'violence', 'violence/graphic',
+  'sexual', 'sexual/minors',
+  'illicit/violent'
+]);
+
+async function moderateText(text) {
+  if (!OPENAI_API_KEY) return { checked: false, categories: [], autoReject: false };
+  try {
+    const r = await fetch('https://api.openai.com/v1/moderations', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ model: 'omni-moderation-latest', input: text })
+    });
+    if (!r.ok) {
+      console.error('openai moderation error', r.status, await r.text());
+      return { checked: false, categories: [], autoReject: false };
+    }
+    const data = await r.json();
+    const cats = data?.results?.[0]?.categories || {};
+    const fired = Object.keys(cats).filter((k) => cats[k]);
+    const autoReject = fired.some((c) => AUTO_REJECT.has(c));
+    return { checked: true, categories: fired, autoReject };
+  } catch (e) {
+    console.error('openai moderation exception', e);
+    return { checked: false, categories: [], autoReject: false };
+  }
+}
+
+async function notifyModerator(post) {
+  if (!RESEND_API_KEY) return;
+  const tag = post.flagged
+    ? ' [self-harm flagged]'
+    : post.reported
+    ? ' [community reported]'
+    : '';
+  const preview = escapeHtml(String(post.text).slice(0, 500)).replace(/\n/g, '<br>');
+  const payload = {
+    from: MAIL_FROM,
+    to: [MODERATOR_EMAIL],
+    subject: `Heard.ke: a wall post needs review${tag}`,
+    html:
+      `<p>A post is waiting for your review${post.reported ? ' (readers reported it)' : ''}.</p>` +
+      `<blockquote style="border-left:3px solid #e6a95c;padding-left:12px;color:#333">${preview}</blockquote>` +
+      (post.flagged
+        ? '<p style="color:#b23a22"><strong>This post mentions self-harm. Please review with care.</strong></p>'
+        : '') +
+      `<p><a href="${ADMIN_URL}">Open the review page</a></p>`
+  };
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!r.ok) console.error('moderator alert failed', r.status, await r.text());
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_KEY) return res.status(503).json({ error: 'admin not configured' });
+  const key = req.get('x-admin-key') || req.query.key;
+  if (key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+  next();
+}
 
 // ---------- wall ----------
 app.get('/api/wall', (req, res) => {
@@ -60,26 +152,42 @@ app.get('/api/wall', (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 30, 100);
   const rows = db
     .prepare(
-      'SELECT * FROM posts WHERE hidden = 0 AND ts > ? ORDER BY ts DESC LIMIT ?'
+      "SELECT * FROM posts WHERE status = 'approved' AND ts > ? ORDER BY ts DESC LIMIT ?"
     )
     .all(since, limit);
   res.json(rows.map(serializePost));
 });
 
-app.post('/api/wall', postLimiter, smallJson, (req, res) => {
+app.post('/api/wall', postLimiter, smallJson, async (req, res) => {
   const text = String(req.body?.text || '').trim();
   if (!text || text.length > 2000) {
     return res.status(400).json({ error: 'text must be 1-2000 characters' });
   }
-  const flagged = HEAVY_RE.test(text) ? 1 : 0;
+  const selfHarmPhrase = HEAVY_RE.test(text);
+  const mod = await moderateText(text);
+  const flagged =
+    selfHarmPhrase || mod.categories.some((c) => c.startsWith('self-harm')) ? 1 : 0;
+  const status = mod.autoReject ? 'rejected' : 'pending';
   const ts = Date.now();
+  const aiResult = mod.checked ? JSON.stringify(mod.categories) : null;
   const info = db
-    .prepare('INSERT INTO posts (text, ts, flagged) VALUES (?, ?, ?)')
-    .run(text, ts, flagged);
+    .prepare(
+      'INSERT INTO posts (text, ts, flagged, status, ai_result) VALUES (?, ?, ?, ?, ?)'
+    )
+    .run(text, ts, flagged, status, aiResult);
+
+  // Only ping the moderator for things that need a human decision.
+  if (status === 'pending') {
+    notifyModerator({ text, flagged }).catch((e) =>
+      console.error('moderator alert', e)
+    );
+  }
+
+  // Same warm response whether pending or auto-rejected, so the filter can't be
+  // gamed and nobody in distress is told their words were turned away.
   res.status(201).json({
     id: info.lastInsertRowid,
-    text,
-    ts,
+    held: true,
     flagged: !!flagged,
     helpline: flagged
       ? { name: 'Befrienders Kenya', phone: '+254722178177' }
@@ -92,12 +200,50 @@ app.post('/api/wall/:id/report', (req, res) => {
   const row = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
   if (!row) return res.status(404).json({ error: 'not found' });
   const reports = row.reports + 1;
-  const hidden = reports >= 3 ? 1 : row.hidden;
-  db.prepare('UPDATE posts SET reports = ?, hidden = ? WHERE id = ?').run(
+  let status = row.status;
+  if (reports >= 2 && status === 'approved') {
+    status = 'pending'; // pull it off the wall and back into your queue
+    notifyModerator({ text: row.text, flagged: row.flagged, reported: true }).catch(
+      (e) => console.error('moderator alert', e)
+    );
+  }
+  db.prepare('UPDATE posts SET reports = ?, status = ? WHERE id = ?').run(
     reports,
-    hidden,
+    status,
     id
   );
+  res.json({ ok: true });
+});
+
+// ---------- admin (moderation dashboard, protected by ADMIN_KEY) ----------
+app.get('/api/admin/wall', requireAdmin, (req, res) => {
+  const status = ['pending', 'approved', 'rejected'].includes(req.query.status)
+    ? req.query.status
+    : 'pending';
+  const rows = db
+    .prepare('SELECT * FROM posts WHERE status = ? ORDER BY ts DESC LIMIT 200')
+    .all(status);
+  const counts = db
+    .prepare('SELECT status, COUNT(*) AS n FROM posts GROUP BY status')
+    .all()
+    .reduce((acc, r) => ((acc[r.status] = r.n), acc), {});
+  res.json({ posts: rows.map(serializeAdminPost), counts });
+});
+
+app.post('/api/admin/wall/:id/:action', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const action = req.params.action;
+  const row = db.prepare('SELECT id FROM posts WHERE id = ?').get(id);
+  if (!row) return res.status(404).json({ error: 'not found' });
+  if (action === 'approve') {
+    db.prepare("UPDATE posts SET status = 'approved' WHERE id = ?").run(id);
+  } else if (action === 'reject') {
+    db.prepare("UPDATE posts SET status = 'rejected' WHERE id = ?").run(id);
+  } else if (action === 'delete') {
+    db.prepare('DELETE FROM posts WHERE id = ?').run(id);
+  } else {
+    return res.status(400).json({ error: 'unknown action' });
+  }
   res.json({ ok: true });
 });
 

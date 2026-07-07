@@ -39,6 +39,20 @@ db.exec(`
   );
 `);
 
+// ---- migration: moderation queue columns on posts ----
+const postCols = db.prepare('PRAGMA table_info(posts)').all().map((c) => c.name);
+if (!postCols.includes('status')) {
+  // status: 'pending' (awaiting review) | 'approved' (public) | 'rejected'
+  db.exec(`ALTER TABLE posts ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`);
+  // any posts that existed before moderation were already public, so keep them visible
+  db.exec(`UPDATE posts SET status = 'approved' WHERE hidden = 0`);
+  db.exec(`UPDATE posts SET status = 'rejected' WHERE hidden = 1`);
+}
+if (!postCols.includes('ai_result')) {
+  // JSON string of the moderation categories that fired, or null if not checked
+  db.exec(`ALTER TABLE posts ADD COLUMN ai_result TEXT`);
+}
+
 const eventCount = db.prepare('SELECT COUNT(*) AS n FROM events').get().n;
 if (eventCount === 0) {
   const day = 24 * 60 * 60 * 1000;

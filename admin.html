@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
+<title>Heard.ke — Review</title>
+<style>
+  :root{
+    --bg:#211913; --bg-2:#2b211a; --line:#493a2e;
+    --cream:#efe7d9; --muted:#b6a892; --amber:#e6a95c; --olive:#93a06a; --clay:#cd6046;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--cream);font-family:system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding:20px;max-width:680px;margin:0 auto}
+  h1{font-size:1.3rem;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.85rem;margin-bottom:20px}
+  input,button{font-family:inherit}
+  .gate{display:flex;gap:8px;margin-bottom:20px}
+  .gate input{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--cream);padding:11px 13px;font-size:1rem}
+  .btn{background:var(--amber);color:#2a1c10;border:none;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;font-size:.9rem}
+  .btn:hover{filter:brightness(1.05)}
+  .tabs{display:flex;gap:6px;margin-bottom:18px}
+  .tab{flex:1;background:var(--bg-2);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 6px;font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s}
+  .tab.on{background:var(--amber);color:#2a1c10;border-color:transparent}
+  .card{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px}
+  .card.flagged{border-color:var(--clay)}
+  .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);margin-bottom:10px}
+  .badge{border:1px solid var(--line);border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.05em}
+  .badge.harm{border-color:var(--clay);color:#f0a58f}
+  .badge.ai{border-color:var(--olive);color:#b9c495}
+  .txt{white-space:pre-wrap;margin-bottom:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row button{border:1px solid var(--line);background:transparent;color:var(--cream);border-radius:9px;padding:9px 14px;font-weight:600;font-size:.85rem;cursor:pointer;transition:.15s}
+  .approve{border-color:var(--olive)!important;color:var(--olive)!important}
+  .approve:hover{background:rgba(147,160,106,.12)}
+  .reject{border-color:#a86a52!important;color:#e0a58f!important}
+  .reject:hover{background:rgba(205,96,70,.12)}
+  .del:hover{color:var(--clay);border-color:var(--clay)}
+  .empty{color:var(--muted);text-align:center;padding:40px 10px}
+  .status{color:var(--muted);font-size:.85rem;margin:10px 0}
+  .harmnote{color:#f0a58f;font-size:.78rem;margin-top:10px}
+</style>
+</head>
+<body>
+  <h1>Wall review</h1>
+  <p class="sub">Private moderation for Heard.ke. Nothing here is public until you approve it.</p>
+
+  <div class="gate" id="gate">
+    <input type="password" id="key" placeholder="Enter your review key" autocomplete="current-password">
+    <button class="btn" onclick="unlock()">Unlock</button>
+  </div>
+
+  <div id="panel" style="display:none">
+    <div class="tabs">
+      <button class="tab on" data-s="pending" onclick="setTab('pending')">Pending</button>
+      <button class="tab" data-s="approved" onclick="setTab('approved')">Approved</button>
+      <button class="tab" data-s="rejected" onclick="setTab('rejected')">Rejected</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div id="list"></div>
+  </div>
+
+<script>
+const API_BASE='https://heard-ke.onrender.com';
+let KEY='', TAB='pending';
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function timeAgo(ts){const d=(Date.now()-ts)/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+
+async function unlock(){
+  const k=document.getElementById('key').value.trim();
+  if(!k) return;
+  KEY=k;
+  const result=await load();
+  if(result==='ok'){
+    localStorage.setItem('heardke_admin_key',k);
+    document.getElementById('gate').style.display='none';
+    document.getElementById('panel').style.display='block';
+  }else if(result==='unauthorized'){
+    localStorage.removeItem('heardke_admin_key');
+    alert('That key was not accepted.');
+  }else{
+    alert('Could not reach the server. Check your connection and try again.');
+  }
+}
+function setTab(s){
+  TAB=s;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));
+  load();
+}
+async function load(){
+  const st=document.getElementById('status'); st.textContent='Loading…';
+  try{
+    const res=await fetch(API_BASE+'/api/admin/wall?status='+TAB,{headers:{'x-admin-key':KEY}});
+    if(res.status===401){ st.textContent=''; return 'unauthorized'; }
+    if(!res.ok) throw new Error('failed');
+    const data=await res.json();
+    render(data);
+    return 'ok';
+  }catch(e){
+    st.textContent='Could not reach the server. Try again in a moment.';
+    return 'error';
+  }
+}
+function render(data){
+  const c=data.counts||{};
+  document.getElementById('status').textContent=
+    `Pending: ${c.pending||0} · Approved: ${c.approved||0} · Rejected: ${c.rejected||0}`;
+  const list=document.getElementById('list');
+  if(!data.posts.length){ list.innerHTML='<div class="empty">Nothing in "'+TAB+'".</div>'; return; }
+  list.innerHTML=data.posts.map(p=>{
+    const badges=[];
+    if(p.flagged) badges.push('<span class="badge harm">self-harm</span>');
+    if(p.reports) badges.push('<span class="badge">'+p.reports+' report'+(p.reports>1?'s':'')+'</span>');
+    (p.ai||[]).forEach(cat=>badges.push('<span class="badge ai">'+esc(cat)+'</span>'));
+    let actions='';
+    if(TAB==='pending') actions='<button class="approve" onclick="act('+p.id+',\'approve\')">Approve</button><button class="reject" onclick="act('+p.id+',\'reject\')">Reject</button>';
+    else if(TAB==='approved') actions='<button class="reject" onclick="act('+p.id+',\'reject\')">Take down</button>';
+    else actions='<button class="approve" onclick="act('+p.id+',\'approve\')">Restore</button>';
+    actions+='<button class="del" onclick="act('+p.id+',\'delete\')">Delete</button>';
+    return '<div class="card'+(p.flagged?' flagged':'')+'">'
+      +'<div class="meta"><span>'+timeAgo(p.ts)+'</span>'+badges.join('')+'</div>'
+      +'<div class="txt">'+esc(p.text)+'</div>'
+      +(p.flagged?'<div class="harmnote">Mentions self-harm — review with care before approving.</div>':'')
+      +'<div class="row" style="margin-top:12px">'+actions+'</div>'
+      +'</div>';
+  }).join('');
+}
+async function act(id,action){
+  if(action==='delete' && !confirm('Delete this permanently?')) return;
+  try{
+    const res=await fetch(API_BASE+'/api/admin/wall/'+id+'/'+action,{method:'POST',headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    load();
+  }catch(e){ alert('That did not go through. Try again.'); }
+}
+
+// auto-unlock if key already saved
+(function(){
+  const saved=localStorage.getItem('heardke_admin_key');
+  if(saved){ document.getElementById('key').value=saved; unlock(); }
+})();
+</script>
+</body>
+</html>

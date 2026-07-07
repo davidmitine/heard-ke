@@ -345,6 +345,8 @@
       <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you. No name attached.</small></button>
       <button class="act send" onclick="switchMode('guide')">Advice &amp; resources <small>Guidance, hotlines, books, and music.</small></button>
     </div>
+    <p style="color:var(--muted);font-size:.8rem;margin-top:10px;text-align:center">Posts are read before they go up, to keep this a safe place. Yours will appear once it's reviewed.</p>
+    <div id="wallConfirm" style="display:none" class="nudge"></div>
     <div id="wallFeed" style="margin-top:22px"></div>
   </section>
 
@@ -518,7 +520,7 @@ async function loadWall(){
     const res=await fetch(API_BASE+'/api/wall');
     if(!res.ok) throw new Error('bad response');
     const posts=await res.json();
-    if(!posts.length){ el.innerHTML='<div class="empty"><div class="big">Nobody\'s posted yet.</div><p>Be the first to say it.</p></div>'; return; }
+    if(!posts.length){ el.innerHTML='<div class="empty"><div class="big">Nothing here yet.</div><p>When men share and their posts are reviewed, they show up here. Yours could be the first.</p></div>'; return; }
     el.innerHTML=posts.map(p=>`<div class="item"><div class="meta"><span>${timeAgo(p.ts)}</span><button class="del" onclick="reportPost(${p.id})">report</button></div><div class="txt">${esc(p.text)}</div></div>`).join('');
   }catch(e){
     el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t reach the wall right now. Try again in a moment.</p>';
@@ -533,9 +535,12 @@ async function postToWall(){
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'failed');
     wallDump.value=''; document.getElementById('nudgeWall').style.display='none';
-    await loadWall();
-    const fresh=document.querySelector('#wallFeed .item');
-    if(fresh) fresh.classList.add('fresh');
+    const confirm=document.getElementById('wallConfirm');
+    let msg='<p><strong>You\'ve been heard.</strong> Your post will appear on the wall once it\'s been reviewed.</p>';
+    if(data.helpline){ msg+='<a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>'; }
+    confirm.innerHTML=msg; confirm.style.display='block';
+    confirm.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>{ confirm.style.display='none'; }, 12000);
   }catch(e){
     alert('Couldn\'t post right now. Check your connection and try again.');
   }finally{ btn.disabled=false; }
