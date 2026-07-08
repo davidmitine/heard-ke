@@ -115,6 +115,9 @@
   @keyframes recBreathe{0%,100%{box-shadow:0 0 0 0 rgba(205,96,70,.28)}50%{box-shadow:0 0 0 12px rgba(205,96,70,0)}}
   @keyframes recPulse{0%{box-shadow:0 0 0 6px rgba(205,96,70,.3)}100%{box-shadow:0 0 0 22px rgba(205,96,70,0)}}
   .rec-label{margin-top:16px;font-size:.9rem;color:var(--muted)}
+  .rerec{font-family:inherit;font-size:.85rem;font-weight:600;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 16px;margin-top:16px;cursor:pointer;transition:color .2s ease,border-color .2s ease,transform .15s ease}
+  .rerec:hover{color:var(--cream);border-color:var(--muted)}
+  .rerec:active{transform:scale(.96)}
   .disguise-toggle{display:flex;align-items:center;justify-content:center;gap:8px;font-size:.88rem;color:var(--cream);margin-bottom:14px;cursor:pointer}
   .disguise-toggle input{width:16px;height:16px;accent-color:var(--amber)}
   .disguise-presets{display:flex;justify-content:center;gap:8px;margin-bottom:18px}
@@ -298,6 +301,7 @@
       <div class="rec-label" id="recLabel">Tap to speak. Say it out loud. Nobody else hears it.</div>
       <div class="timer" id="timer" style="display:none">0:00</div>
       <audio id="player" controls style="display:none"></audio>
+      <button class="rerec" id="reRecordVoice" onclick="resetVoice()" style="display:none">↺ Record again</button>
       <div class="mic-err" id="micErr">Your browser blocked the microphone here. On the live Heard.ke site (over https) this works fine. For now, try <b>Write</b> or <b>Draw</b>.</div>
     </div>
     <div class="actions">
@@ -308,7 +312,6 @@
         <button class="act send" onclick="sendVoice('email')">Email it <small>We'll ask for your address.</small></button>
         <button class="act send" onclick="sendVoice('whatsapp')">WhatsApp it <small>Share the recording via WhatsApp.</small></button>
       </div>
-      <button class="act say" id="reRecordVoice" onclick="resetVoice()" disabled>Record again <small>Discard this and start over.</small></button>
     </div>
   </section>
 
@@ -740,7 +743,7 @@ async function toggleRec(){
     document.getElementById('relVoice').disabled=false;
     document.getElementById('keepVoice').disabled=false;
     document.getElementById('sendVoice').disabled=false;
-    document.getElementById('reRecordVoice').disabled=false;
+    document.getElementById('reRecordVoice').style.display='inline-flex';
     document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
   };
   mediaRec.start();
@@ -768,7 +771,7 @@ function stopRec(){
   recBtn.classList.remove('recording');
   document.getElementById('recLabel').textContent='Recorded. Play it back, then release or keep it.';
 }
-function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('reRecordVoice').disabled=true;
+function resetVoice(){ recBlob=null; document.getElementById('relVoice').disabled=true; document.getElementById('keepVoice').disabled=true; document.getElementById('sendVoice').disabled=true; document.getElementById('reRecordVoice').style.display='none';
   document.getElementById('sendChoice-speak').classList.remove('on');
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud. Nobody else hears it.'; }
