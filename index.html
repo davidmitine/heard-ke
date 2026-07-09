@@ -166,7 +166,7 @@
   .burn{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
   .burn.on{display:flex}
   .ember{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);color:var(--amber);max-width:16ch;filter:drop-shadow(0 0 18px rgba(230,169,92,.7))}
-  .burn.go .ember{animation:burnaway 2s ease forwards}
+  .burn.go .ember{animation:burnaway 4s ease forwards}
   @keyframes burnaway{0%{opacity:1;transform:scale(1)}40%{opacity:1;filter:blur(0) drop-shadow(0 0 40px rgba(205,96,70,.9))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
   .burn-done{opacity:0;margin-top:26px;font-size:1.05rem;color:var(--muted)}
   .burn.done .burn-done{animation:fadein .8s ease forwards}
@@ -453,8 +453,8 @@ function burn(text){
   const em=document.getElementById('ember'); em.textContent=text||'Let it go.';
   const b=document.getElementById('burn'); b.classList.add('on');
   requestAnimationFrame(()=>b.classList.add('go'));
-  setTimeout(()=>b.classList.add('done'),1900);
-  setTimeout(()=>b.classList.remove('on','go','done'),3600);
+  setTimeout(()=>b.classList.add('done'),3900);
+  setTimeout(()=>b.classList.remove('on','go','done'),5600);
 }
 function sealEnvelope(payload,done){
   const s=document.getElementById('seal'); s.classList.add('on');
