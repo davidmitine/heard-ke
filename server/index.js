@@ -38,7 +38,9 @@ const lockerWriteLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 const lockerReadLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 const smallJson = express.json({ limit: '20kb' });
+const wallJson = express.json({ limit: '200kb' }); // generous room for long posts
 const emailJson = express.json({ limit: '15mb' });
+const MAX_POST_LENGTH = 20000; // ~8-10 typed pages — a real ceiling, not a real limit
 const lockerJson = express.json({ limit: '15mb' });
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L to avoid ambiguity
@@ -158,10 +160,12 @@ app.get('/api/wall', (req, res) => {
   res.json(rows.map(serializePost));
 });
 
-app.post('/api/wall', postLimiter, smallJson, async (req, res) => {
+app.post('/api/wall', postLimiter, wallJson, async (req, res) => {
   const text = String(req.body?.text || '').trim();
-  if (!text || text.length > 2000) {
-    return res.status(400).json({ error: 'text must be 1-2000 characters' });
+  if (!text || text.length > MAX_POST_LENGTH) {
+    return res
+      .status(400)
+      .json({ error: `text must be 1-${MAX_POST_LENGTH} characters` });
   }
   const selfHarmPhrase = HEAVY_RE.test(text);
   const mod = await moderateText(text);
@@ -296,7 +300,7 @@ app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
   if (!['text', 'audio', 'draw'].includes(type)) {
     return res.status(400).json({ error: 'invalid type' });
   }
-  if (text.length > 5000) {
+  if (text.length > MAX_POST_LENGTH) {
     return res.status(400).json({ error: 'text too long' });
   }
 
@@ -359,8 +363,10 @@ app.post('/api/locker', lockerWriteLimiter, lockerJson, (req, res) => {
   if (!['text', 'audio', 'draw'].includes(type)) {
     return res.status(400).json({ error: 'invalid type' });
   }
-  if (type === 'text' && (!text || text.length > 5000)) {
-    return res.status(400).json({ error: 'text required (max 5000 chars)' });
+  if (type === 'text' && (!text || text.length > MAX_POST_LENGTH)) {
+    return res
+      .status(400)
+      .json({ error: `text required (max ${MAX_POST_LENGTH} chars)` });
   }
   if (type !== 'text' && !attachment?.base64) {
     return res.status(400).json({ error: 'attachment required' });
