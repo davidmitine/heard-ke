@@ -14,16 +14,21 @@
   body{background:var(--bg);color:var(--cream);font-family:system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding:20px;max-width:680px;margin:0 auto}
   h1{font-size:1.3rem;margin-bottom:4px}
   .sub{color:var(--muted);font-size:.85rem;margin-bottom:20px}
-  input,button{font-family:inherit}
+  input,button,textarea{font-family:inherit}
   .gate{display:flex;gap:8px;margin-bottom:20px}
   .gate input{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--cream);padding:11px 13px;font-size:1rem}
   .btn{background:var(--amber);color:#2a1c10;border:none;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;font-size:.9rem}
   .btn:hover{filter:brightness(1.05)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--cream)}
+  .section-nav{display:flex;gap:6px;margin-bottom:20px}
+  .sectionbtn{flex:1;background:var(--bg-2);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:11px 6px;font-weight:700;font-size:.88rem;cursor:pointer;transition:.15s}
+  .sectionbtn.on{background:var(--olive);color:#1c2314;border-color:transparent}
   .tabs{display:flex;gap:6px;margin-bottom:18px}
   .tab{flex:1;background:var(--bg-2);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 6px;font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s}
   .tab.on{background:var(--amber);color:#2a1c10;border-color:transparent}
   .card{background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px}
   .card.flagged{border-color:var(--clay)}
+  .card.past{opacity:.55}
   .meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);margin-bottom:10px}
   .badge{border:1px solid var(--line);border-radius:6px;padding:2px 7px;text-transform:uppercase;letter-spacing:.05em}
   .badge.harm{border-color:var(--clay);color:#f0a58f}
@@ -39,11 +44,19 @@
   .empty{color:var(--muted);text-align:center;padding:40px 10px}
   .status{color:var(--muted);font-size:.85rem;margin:10px 0}
   .harmnote{color:#f0a58f;font-size:.78rem;margin-top:10px}
+  .event-title{font-family:inherit;font-weight:800;font-size:1.05rem;margin-bottom:4px}
+  .event-loc{color:var(--muted);font-size:.85rem;margin-bottom:8px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px}
+  .field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;color:var(--cream);padding:10px 12px;font-size:.92rem}
+  .field textarea{min-height:70px;resize:vertical}
+  .field.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-card{background:var(--bg-2);border:1px solid var(--amber);border-radius:14px;padding:16px;margin-bottom:16px}
 </style>
 </head>
 <body>
-  <h1>Wall review</h1>
-  <p class="sub">Private moderation for Heard.ke. Nothing here is public until you approve it.</p>
+  <h1>Heard.ke admin</h1>
+  <p class="sub">Private controls for Heard.ke. Nothing here is public until you say so.</p>
 
   <div class="gate" id="gate">
     <input type="password" id="key" placeholder="Enter your review key" autocomplete="current-password">
@@ -51,27 +64,73 @@
   </div>
 
   <div id="panel" style="display:none">
-    <div class="tabs">
-      <button class="tab on" data-s="pending" onclick="setTab('pending')">Pending</button>
-      <button class="tab" data-s="approved" onclick="setTab('approved')">Approved</button>
-      <button class="tab" data-s="rejected" onclick="setTab('rejected')">Rejected</button>
+    <div class="section-nav">
+      <button class="sectionbtn on" data-sec="wall" onclick="setSection('wall')">Wall review</button>
+      <button class="sectionbtn" data-sec="events" onclick="setSection('events')">Meetups</button>
     </div>
-    <div class="status" id="status"></div>
-    <div id="list"></div>
+
+    <!-- WALL -->
+    <div id="section-wall">
+      <div class="tabs">
+        <button class="tab on" data-s="pending" onclick="setTab('pending')">Pending</button>
+        <button class="tab" data-s="approved" onclick="setTab('approved')">Approved</button>
+        <button class="tab" data-s="rejected" onclick="setTab('rejected')">Rejected</button>
+      </div>
+      <div class="status" id="wallStatus"></div>
+      <div id="wallList"></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div id="section-events" style="display:none">
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn" onclick="showEventForm()">+ Add a meetup</button>
+      </div>
+      <div id="eventForm" style="display:none" class="form-card">
+        <div class="field">
+          <label>Title</label>
+          <input id="ev-title" placeholder="e.g. Saturday morning run">
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="ev-desc" placeholder="What it is, what to expect, who it's for"></textarea>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input id="ev-loc" placeholder="e.g. Karura Forest, Nairobi">
+        </div>
+        <div class="field two">
+          <div>
+            <label>Date</label>
+            <input id="ev-date" type="date">
+          </div>
+          <div>
+            <label>Time</label>
+            <input id="ev-time" type="time">
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" onclick="saveEvent()" id="ev-save">Add meetup</button>
+          <button class="btn ghost" onclick="hideEventForm()">Cancel</button>
+        </div>
+      </div>
+      <div class="status" id="eventsStatus"></div>
+      <div id="eventsList"></div>
+    </div>
   </div>
 
 <script>
 const API_BASE='https://heard-ke.onrender.com';
-let KEY='', TAB='pending';
+let KEY='', TAB='pending', SECTION='wall', EDITING_EVENT_ID=null;
 
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function timeAgo(ts){const d=(Date.now()-ts)/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+function fmtWhen(ts){const d=new Date(ts);return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});}
 
 async function unlock(){
   const k=document.getElementById('key').value.trim();
   if(!k) return;
   KEY=k;
-  const result=await load();
+  const result=await loadWall();
   if(result==='ok'){
     localStorage.setItem('heardke_admin_key',k);
     document.getElementById('gate').style.display='none';
@@ -83,30 +142,40 @@ async function unlock(){
     alert('Could not reach the server. Check your connection and try again.');
   }
 }
+
+function setSection(sec){
+  SECTION=sec;
+  document.querySelectorAll('.sectionbtn').forEach(b=>b.classList.toggle('on',b.dataset.sec===sec));
+  document.getElementById('section-wall').style.display=sec==='wall'?'block':'none';
+  document.getElementById('section-events').style.display=sec==='events'?'block':'none';
+  if(sec==='events') loadEvents();
+}
+
+/* ---------- wall review ---------- */
 function setTab(s){
   TAB=s;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.s===s));
-  load();
+  loadWall();
 }
-async function load(){
-  const st=document.getElementById('status'); st.textContent='Loading…';
+async function loadWall(){
+  const st=document.getElementById('wallStatus'); st.textContent='Loading…';
   try{
     const res=await fetch(API_BASE+'/api/admin/wall?status='+TAB,{headers:{'x-admin-key':KEY}});
     if(res.status===401){ st.textContent=''; return 'unauthorized'; }
     if(!res.ok) throw new Error('failed');
     const data=await res.json();
-    render(data);
+    renderWall(data);
     return 'ok';
   }catch(e){
     st.textContent='Could not reach the server. Try again in a moment.';
     return 'error';
   }
 }
-function render(data){
+function renderWall(data){
   const c=data.counts||{};
-  document.getElementById('status').textContent=
+  document.getElementById('wallStatus').textContent=
     `Pending: ${c.pending||0} · Approved: ${c.approved||0} · Rejected: ${c.rejected||0}`;
-  const list=document.getElementById('list');
+  const list=document.getElementById('wallList');
   if(!data.posts.length){ list.innerHTML='<div class="empty">Nothing in "'+TAB+'".</div>'; return; }
   list.innerHTML=data.posts.map(p=>{
     const badges=[];
@@ -114,10 +183,10 @@ function render(data){
     if(p.reports) badges.push('<span class="badge">'+p.reports+' report'+(p.reports>1?'s':'')+'</span>');
     (p.ai||[]).forEach(cat=>badges.push('<span class="badge ai">'+esc(cat)+'</span>'));
     let actions='';
-    if(TAB==='pending') actions='<button class="approve" onclick="act('+p.id+',\'approve\')">Approve</button><button class="reject" onclick="act('+p.id+',\'reject\')">Reject</button>';
-    else if(TAB==='approved') actions='<button class="reject" onclick="act('+p.id+',\'reject\')">Take down</button>';
-    else actions='<button class="approve" onclick="act('+p.id+',\'approve\')">Restore</button>';
-    actions+='<button class="del" onclick="act('+p.id+',\'delete\')">Delete</button>';
+    if(TAB==='pending') actions='<button class="approve" onclick="actWall('+p.id+',\'approve\')">Approve</button><button class="reject" onclick="actWall('+p.id+',\'reject\')">Reject</button>';
+    else if(TAB==='approved') actions='<button class="reject" onclick="actWall('+p.id+',\'reject\')">Take down</button>';
+    else actions='<button class="approve" onclick="actWall('+p.id+',\'approve\')">Restore</button>';
+    actions+='<button class="del" onclick="actWall('+p.id+',\'delete\')">Delete</button>';
     return '<div class="card'+(p.flagged?' flagged':'')+'">'
       +'<div class="meta"><span>'+timeAgo(p.ts)+'</span>'+badges.join('')+'</div>'
       +'<div class="txt">'+esc(p.text)+'</div>'
@@ -126,13 +195,102 @@ function render(data){
       +'</div>';
   }).join('');
 }
-async function act(id,action){
+async function actWall(id,action){
   if(action==='delete' && !confirm('Delete this permanently?')) return;
   try{
     const res=await fetch(API_BASE+'/api/admin/wall/'+id+'/'+action,{method:'POST',headers:{'x-admin-key':KEY}});
     if(!res.ok) throw new Error('failed');
-    load();
+    loadWall();
   }catch(e){ alert('That did not go through. Try again.'); }
+}
+
+/* ---------- events ---------- */
+function showEventForm(){
+  EDITING_EVENT_ID=null;
+  document.getElementById('ev-title').value='';
+  document.getElementById('ev-desc').value='';
+  document.getElementById('ev-loc').value='';
+  document.getElementById('ev-date').value='';
+  document.getElementById('ev-time').value='';
+  document.getElementById('ev-save').textContent='Add meetup';
+  document.getElementById('eventForm').style.display='block';
+}
+function hideEventForm(){
+  EDITING_EVENT_ID=null;
+  document.getElementById('eventForm').style.display='none';
+}
+function editEvent(ev){
+  EDITING_EVENT_ID=ev.id;
+  document.getElementById('ev-title').value=ev.title;
+  document.getElementById('ev-desc').value=ev.description;
+  document.getElementById('ev-loc').value=ev.location;
+  const d=new Date(ev.datetime);
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('ev-date').value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  document.getElementById('ev-time').value=`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  document.getElementById('ev-save').textContent='Save changes';
+  document.getElementById('eventForm').style.display='block';
+  document.getElementById('eventForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function saveEvent(){
+  const title=document.getElementById('ev-title').value.trim();
+  const description=document.getElementById('ev-desc').value.trim();
+  const location=document.getElementById('ev-loc').value.trim();
+  const date=document.getElementById('ev-date').value;
+  const time=document.getElementById('ev-time').value;
+  if(!title||!description||!location||!date||!time){ alert('Fill in every field.'); return; }
+  const datetime=new Date(date+'T'+time).getTime();
+  if(!Number.isFinite(datetime)){ alert('That date/time is not valid.'); return; }
+  const body=JSON.stringify({title,description,location,datetime});
+  const url=EDITING_EVENT_ID
+    ? API_BASE+'/api/admin/events/'+EDITING_EVENT_ID+'/update'
+    : API_BASE+'/api/admin/events';
+  try{
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':KEY},body});
+    if(!res.ok) throw new Error('failed');
+    hideEventForm();
+    loadEvents();
+  }catch(e){ alert('Could not save that meetup. Try again.'); }
+}
+async function deleteEvent(id){
+  if(!confirm('Delete this meetup? RSVPs for it will be removed too.')) return;
+  try{
+    const res=await fetch(API_BASE+'/api/admin/events/'+id+'/delete',{method:'POST',headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    loadEvents();
+  }catch(e){ alert('That did not go through. Try again.'); }
+}
+async function loadEvents(){
+  const st=document.getElementById('eventsStatus'); st.textContent='Loading…';
+  try{
+    const res=await fetch(API_BASE+'/api/admin/events',{headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    const data=await res.json();
+    renderEvents(data.events||[]);
+  }catch(e){
+    st.textContent='Could not reach the server. Try again in a moment.';
+  }
+}
+function renderEvents(events){
+  const st=document.getElementById('eventsStatus');
+  const now=Date.now();
+  const upcoming=events.filter(e=>e.datetime>now).length;
+  st.textContent=`${upcoming} upcoming · ${events.length} total`;
+  const list=document.getElementById('eventsList');
+  if(!events.length){ list.innerHTML='<div class="empty">No meetups yet. Add one above.</div>'; return; }
+  list.innerHTML=events.map(ev=>{
+    const isPast=ev.datetime<=now;
+    return '<div class="card'+(isPast?' past':'')+'">'
+      +'<div class="meta"><span class="badge">'+fmtWhen(ev.datetime)+'</span>'+(isPast?'<span class="badge">past</span>':'')+'<span>'+ev.rsvp_count+' going</span></div>'
+      +'<div class="event-title">'+esc(ev.title)+'</div>'
+      +'<div class="event-loc">'+esc(ev.location)+'</div>'
+      +'<div class="txt">'+esc(ev.description)+'</div>'
+      +'<div class="row">'
+        +'<button class="approve" onclick=\'editEvent('+JSON.stringify(ev).replace(/'/g,"&#39;")+')\'>Edit</button>'
+        +'<button class="del" onclick="deleteEvent('+ev.id+')">Delete</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
 }
 
 // auto-unlock if key already saved

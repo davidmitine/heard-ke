@@ -281,6 +281,60 @@ app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, (req, res) => {
   res.json({ ok: true, rsvp_count });
 });
 
+// ---------- admin: events (create/edit/delete meetups) ----------
+function validEventFields(body) {
+  const title = String(body?.title || '').trim();
+  const description = String(body?.description || '').trim();
+  const location = String(body?.location || '').trim();
+  const datetime = Number(body?.datetime);
+  if (!title || title.length > 200) return null;
+  if (!description || description.length > 2000) return null;
+  if (!location || location.length > 200) return null;
+  if (!Number.isFinite(datetime) || datetime <= 0) return null;
+  return { title, description, location, datetime };
+}
+
+app.get('/api/admin/events', requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
+       FROM events e ORDER BY e.datetime ASC`
+    )
+    .all();
+  res.json({ events: rows });
+});
+
+app.post('/api/admin/events', requireAdmin, smallJson, (req, res) => {
+  const fields = validEventFields(req.body);
+  if (!fields) return res.status(400).json({ error: 'invalid event fields' });
+  const info = db
+    .prepare(
+      'INSERT INTO events (title, description, location, datetime) VALUES (?, ?, ?, ?)'
+    )
+    .run(fields.title, fields.description, fields.location, fields.datetime);
+  res.status(201).json({ id: info.lastInsertRowid });
+});
+
+app.post('/api/admin/events/:id/update', requireAdmin, smallJson, (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const fields = validEventFields(req.body);
+  if (!fields) return res.status(400).json({ error: 'invalid event fields' });
+  db.prepare(
+    'UPDATE events SET title = ?, description = ?, location = ?, datetime = ? WHERE id = ?'
+  ).run(fields.title, fields.description, fields.location, fields.datetime, id);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/events/:id/delete', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare('DELETE FROM rsvps WHERE event_id = ?').run(id);
+  const info = db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  if (info.changes === 0) return res.status(404).json({ error: 'not found' });
+  res.json({ ok: true });
+});
+
 // ---------- send to self (email) ----------
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'Heard.ke <onboarding@resend.dev>';
