@@ -571,7 +571,7 @@ async function loadEvents(){
         +`<div class="rsvp-form" id="rsvpForm-${ev.id}" style="display:none;margin-top:12px">`
           +`<input class="rsvp-input" id="rsvpPhone-${ev.id}" type="tel" placeholder="Phone number, so I can reach you">`
           +`<input class="rsvp-input" id="rsvpEmail-${ev.id}" type="email" placeholder="Email (optional)">`
-          +`<p style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Only seen by the Heard.ke organizer, used to reach out about this meetup.</p>`
+          +`<p style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Used only to reach you about this meetup. Only seen by the Heard.ke organizer, never shown publicly, never used for anything else.</p>`
           +`<div style="display:flex;gap:8px">`
             +`<button class="connect-btn" style="flex:1" onclick="submitRsvp(${ev.id})">Confirm I'm in</button>`
             +`<button class="clearbtn" onclick="hideRsvpForm(${ev.id})">Cancel</button>`
