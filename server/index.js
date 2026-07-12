@@ -262,18 +262,30 @@ app.get('/api/events', (req, res) => {
   res.json(rows);
 });
 
+const PHONE_RE = /^\+?[0-9\s-]{7,20}$/;
+
 app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, (req, res) => {
   const eventId = Number(req.params.id);
   const clientId = String(req.body?.clientId || '').trim();
+  const phone = String(req.body?.phone || '').trim();
+  const email = String(req.body?.email || '').trim();
+
   if (!clientId || clientId.length > 100) {
     return res.status(400).json({ error: 'clientId required' });
+  }
+  if (!phone || !PHONE_RE.test(phone)) {
+    return res.status(400).json({ error: 'a valid phone number is required' });
+  }
+  if (email && !EMAIL_RE.test(email)) {
+    return res.status(400).json({ error: 'that email address does not look right' });
   }
   const event = db.prepare('SELECT id FROM events WHERE id = ?').get(eventId);
   if (!event) return res.status(404).json({ error: 'event not found' });
 
   db.prepare(
-    'INSERT OR IGNORE INTO rsvps (event_id, client_id, ts) VALUES (?, ?, ?)'
-  ).run(eventId, clientId, Date.now());
+    `INSERT INTO rsvps (event_id, client_id, ts, phone, email) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(event_id, client_id) DO UPDATE SET phone = excluded.phone, email = excluded.email`
+  ).run(eventId, clientId, Date.now(), phone, email || null);
 
   const rsvp_count = db
     .prepare('SELECT COUNT(*) AS n FROM rsvps WHERE event_id = ?')
@@ -333,6 +345,15 @@ app.post('/api/admin/events/:id/delete', requireAdmin, (req, res) => {
   const info = db.prepare('DELETE FROM events WHERE id = ?').run(id);
   if (info.changes === 0) return res.status(404).json({ error: 'not found' });
   res.json({ ok: true });
+});
+
+// attendee contact info for a meetup — only ever visible here, never on the public site
+app.get('/api/admin/events/:id/rsvps', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const rows = db
+    .prepare('SELECT phone, email, ts FROM rsvps WHERE event_id = ? ORDER BY ts ASC')
+    .all(id);
+  res.json({ rsvps: rows });
 });
 
 // ---------- send to self (email) ----------

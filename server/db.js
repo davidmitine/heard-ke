@@ -53,6 +53,15 @@ if (!postCols.includes('ai_result')) {
   db.exec(`ALTER TABLE posts ADD COLUMN ai_result TEXT`);
 }
 
+// ---- migration: contact info on rsvps, so the organizer can follow up ----
+const rsvpCols = db.prepare('PRAGMA table_info(rsvps)').all().map((c) => c.name);
+if (!rsvpCols.includes('phone')) {
+  db.exec(`ALTER TABLE rsvps ADD COLUMN phone TEXT`);
+}
+if (!rsvpCols.includes('email')) {
+  db.exec(`ALTER TABLE rsvps ADD COLUMN email TEXT`);
+}
+
 const eventCount = db.prepare('SELECT COUNT(*) AS n FROM events').get().n;
 if (eventCount === 0) {
   const day = 24 * 60 * 60 * 1000;

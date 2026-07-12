@@ -288,9 +288,32 @@ function renderEvents(events){
       +'<div class="row">'
         +'<button class="approve" onclick=\'editEvent('+JSON.stringify(ev).replace(/'/g,"&#39;")+')\'>Edit</button>'
         +'<button class="del" onclick="deleteEvent('+ev.id+')">Delete</button>'
+        +(ev.rsvp_count>0?'<button class="reject" onclick="toggleAttendees('+ev.id+')" id="attBtn-'+ev.id+'">View attendees ('+ev.rsvp_count+')</button>':'')
       +'</div>'
+      +'<div id="attendees-'+ev.id+'" style="display:none;margin-top:12px"></div>'
       +'</div>';
   }).join('');
+}
+async function toggleAttendees(id){
+  const box=document.getElementById('attendees-'+id);
+  if(box.style.display==='block'){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML='<div class="status">Loading…</div>';
+  try{
+    const res=await fetch(API_BASE+'/api/admin/events/'+id+'/rsvps',{headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    const data=await res.json();
+    if(!data.rsvps.length){ box.innerHTML='<div class="status">No one yet.</div>'; return; }
+    box.innerHTML=data.rsvps.map(r=>
+      '<div style="border-top:1px solid var(--line);padding:8px 0;font-size:.88rem">'
+      +'<a href="tel:'+esc(r.phone)+'" style="color:var(--olive)">'+esc(r.phone)+'</a>'
+      +(r.email?' · <a href="mailto:'+esc(r.email)+'" style="color:var(--olive)">'+esc(r.email)+'</a>':'')
+      +' <span style="color:var(--muted)">· '+timeAgo(r.ts)+'</span>'
+      +'</div>'
+    ).join('');
+  }catch(e){
+    box.innerHTML='<div class="status">Could not load attendees. Try again.</div>';
+  }
 }
 
 // auto-unlock if key already saved

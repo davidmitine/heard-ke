@@ -223,6 +223,8 @@
   .connect-btn:hover:not(:disabled){background:#a6b381;transform:translateY(-2px);box-shadow:0 7px 20px rgba(147,160,106,.25)}
   .connect-btn:active:not(:disabled){transform:translateY(1px) scale(.985)}
   .connect-btn:disabled{cursor:default}
+  .rsvp-input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--cream);padding:10px 12px;font-family:inherit;font-size:.95rem;margin-bottom:8px}
+  .rsvp-input:focus{outline:none;border-color:var(--olive)}
   .foot{text-align:center;margin-top:28px;font-size:.8rem;color:var(--muted)}
   .foot a{color:var(--amber-soft)}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -564,23 +566,54 @@ async function loadEvents(){
     el.innerHTML=events.map(ev=>{
       const d=new Date(ev.datetime);
       const when=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
-      return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${ev.location}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div><button class="connect-btn" style="width:100%" onclick="rsvpEvent(${ev.id},this)">I'm in · ${ev.rsvp_count} going</button></div>`;
+      return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${ev.location}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div>`
+        +`<button class="connect-btn" id="rsvpBtn-${ev.id}" style="width:100%" onclick="showRsvpForm(${ev.id})">I'm in · ${ev.rsvp_count} going</button>`
+        +`<div class="rsvp-form" id="rsvpForm-${ev.id}" style="display:none;margin-top:12px">`
+          +`<input class="rsvp-input" id="rsvpPhone-${ev.id}" type="tel" placeholder="Phone number, so I can reach you">`
+          +`<input class="rsvp-input" id="rsvpEmail-${ev.id}" type="email" placeholder="Email (optional)">`
+          +`<p style="color:var(--muted);font-size:.78rem;margin-bottom:10px">Only seen by the Heard.ke organizer, used to reach out about this meetup.</p>`
+          +`<div style="display:flex;gap:8px">`
+            +`<button class="connect-btn" style="flex:1" onclick="submitRsvp(${ev.id})">Confirm I'm in</button>`
+            +`<button class="clearbtn" onclick="hideRsvpForm(${ev.id})">Cancel</button>`
+          +`</div>`
+        +`</div>`
+      +`</div>`;
     }).join('');
   }catch(e){
     el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t load meetups right now. Try again in a moment.</p>';
   }
 }
-async function rsvpEvent(id,btn){
+function showRsvpForm(id){
+  document.getElementById('rsvpBtn-'+id).style.display='none';
+  document.getElementById('rsvpForm-'+id).style.display='block';
+  document.getElementById('rsvpPhone-'+id).focus();
+}
+function hideRsvpForm(id){
+  document.getElementById('rsvpForm-'+id).style.display='none';
+  document.getElementById('rsvpBtn-'+id).style.display='block';
+}
+async function submitRsvp(id){
+  const phoneEl=document.getElementById('rsvpPhone-'+id);
+  const emailEl=document.getElementById('rsvpEmail-'+id);
+  const phone=phoneEl.value.trim();
+  const email=emailEl.value.trim();
+  if(phone.replace(/[^0-9]/g,'').length<7){ phoneEl.focus(); return; }
+  const form=document.getElementById('rsvpForm-'+id);
+  const btn=form.querySelector('.connect-btn');
   btn.disabled=true;
   try{
-    const res=await fetch(API_BASE+'/api/events/'+id+'/rsvp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:getClientId()})});
+    const res=await fetch(API_BASE+'/api/events/'+id+'/rsvp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:getClientId(),phone,email})});
     const data=await res.json();
     if(!res.ok) throw new Error(data.error||'failed');
-    btn.textContent="You're in · "+data.rsvp_count+' going';
-    btn.classList.add('confirmed');
+    form.style.display='none';
+    const mainBtn=document.getElementById('rsvpBtn-'+id);
+    mainBtn.textContent="You're in · "+data.rsvp_count+' going';
+    mainBtn.classList.add('confirmed');
+    mainBtn.disabled=true;
+    mainBtn.style.display='block';
   }catch(e){
     btn.disabled=false;
-    alert('Couldn\'t RSVP right now. Check your connection and try again.');
+    alert(e.message&&e.message!=='failed'?e.message:'Couldn\'t RSVP right now. Check your connection and try again.');
   }
 }
 loadEvents();
