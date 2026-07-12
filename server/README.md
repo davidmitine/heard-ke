@@ -2,6 +2,19 @@
 
 Backend for the anonymous Wall, Events/RSVP, and "send it to myself" email features.
 
+## Database (Turso)
+Data is stored in [Turso](https://turso.tech), a hosted SQLite-compatible database, via
+`@libsql/client`. This replaced a local SQLite file that lived on Render's disk, which
+reset on every redeploy/restart — wall posts and RSVP contact info would vanish.
+
+Env vars:
+- `TURSO_DATABASE_URL` — from your Turso database, looks like `libsql://your-db-name-yourusername.turso.io`
+- `TURSO_AUTH_TOKEN` — an auth token for that database
+
+Without both set, the server falls back to a local file (`heard.db`) — fine for local
+development, but back to the same reset-on-restart problem if deployed without these set.
+Schema creation and migrations run automatically on startup either way.
+
 ## Email sending (Resend)
 Set these env vars to enable "send it to myself" emails:
 - `RESEND_API_KEY` — from resend.com
@@ -31,10 +44,6 @@ Env vars:
 Community reports: a public post pulled back to pending after 2 reports, and the
 reviewer is alerted.
 
-Note: because the SQLite DB is on an ephemeral disk on free hosting tiers, the review
-queue and moderation history can reset on redeploy/restart. Attach a persistent disk
-(or move to a hosted database) before this matters.
-
 ## Run locally
 ```
 cd server
@@ -47,8 +56,6 @@ Set `CLIENT_ORIGIN` to your deployed frontend URL for CORS in production.
 ## Deploy
 Deploy this folder to Render.com (or Railway) as a Node web service.
 Build command: `npm install`. Start command: `npm start`.
-Uses a local SQLite file (`heard.db`) — fine for early traffic, but note that
-most free hosting tiers use ephemeral disks, so the DB may reset on redeploy/restart
-unless you attach a persistent volume.
+Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` so data survives redeploys.
 
 After deploying, update `API_BASE` in `index.html` to the server's public URL.

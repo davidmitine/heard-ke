@@ -149,14 +149,13 @@ function requireAdmin(req, res, next) {
 }
 
 // ---------- wall ----------
-app.get('/api/wall', (req, res) => {
+app.get('/api/wall', async (req, res) => {
   const since = Number(req.query.since) || 0;
   const limit = Math.min(Number(req.query.limit) || 30, 100);
-  const rows = db
-    .prepare(
-      "SELECT * FROM posts WHERE status = 'approved' AND ts > ? ORDER BY ts DESC LIMIT ?"
-    )
-    .all(since, limit);
+  const rows = await db.all(
+    "SELECT * FROM posts WHERE status = 'approved' AND ts > ? ORDER BY ts DESC LIMIT ?",
+    [since, limit]
+  );
   res.json(rows.map(serializePost));
 });
 
@@ -174,11 +173,10 @@ app.post('/api/wall', postLimiter, wallJson, async (req, res) => {
   const status = mod.autoReject ? 'rejected' : 'pending';
   const ts = Date.now();
   const aiResult = mod.checked ? JSON.stringify(mod.categories) : null;
-  const info = db
-    .prepare(
-      'INSERT INTO posts (text, ts, flagged, status, ai_result) VALUES (?, ?, ?, ?, ?)'
-    )
-    .run(text, ts, flagged, status, aiResult);
+  const info = await db.run(
+    'INSERT INTO posts (text, ts, flagged, status, ai_result) VALUES (?, ?, ?, ?, ?)',
+    [text, ts, flagged, status, aiResult]
+  );
 
   // Only ping the moderator for things that need a human decision.
   if (status === 'pending') {
@@ -199,9 +197,9 @@ app.post('/api/wall', postLimiter, wallJson, async (req, res) => {
   });
 });
 
-app.post('/api/wall/:id/report', (req, res) => {
+app.post('/api/wall/:id/report', async (req, res) => {
   const id = Number(req.params.id);
-  const row = db.prepare('SELECT * FROM posts WHERE id = ?').get(id);
+  const row = await db.get('SELECT * FROM posts WHERE id = ?', [id]);
   if (!row) return res.status(404).json({ error: 'not found' });
   const reports = row.reports + 1;
   let status = row.status;
@@ -211,40 +209,39 @@ app.post('/api/wall/:id/report', (req, res) => {
       (e) => console.error('moderator alert', e)
     );
   }
-  db.prepare('UPDATE posts SET reports = ?, status = ? WHERE id = ?').run(
+  await db.run('UPDATE posts SET reports = ?, status = ? WHERE id = ?', [
     reports,
     status,
     id
-  );
+  ]);
   res.json({ ok: true });
 });
 
 // ---------- admin (moderation dashboard, protected by ADMIN_KEY) ----------
-app.get('/api/admin/wall', requireAdmin, (req, res) => {
+app.get('/api/admin/wall', requireAdmin, async (req, res) => {
   const status = ['pending', 'approved', 'rejected'].includes(req.query.status)
     ? req.query.status
     : 'pending';
-  const rows = db
-    .prepare('SELECT * FROM posts WHERE status = ? ORDER BY ts DESC LIMIT 200')
-    .all(status);
-  const counts = db
-    .prepare('SELECT status, COUNT(*) AS n FROM posts GROUP BY status')
-    .all()
-    .reduce((acc, r) => ((acc[r.status] = r.n), acc), {});
+  const rows = await db.all(
+    'SELECT * FROM posts WHERE status = ? ORDER BY ts DESC LIMIT 200',
+    [status]
+  );
+  const countRows = await db.all('SELECT status, COUNT(*) AS n FROM posts GROUP BY status');
+  const counts = countRows.reduce((acc, r) => ((acc[r.status] = r.n), acc), {});
   res.json({ posts: rows.map(serializeAdminPost), counts });
 });
 
-app.post('/api/admin/wall/:id/:action', requireAdmin, (req, res) => {
+app.post('/api/admin/wall/:id/:action', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const action = req.params.action;
-  const row = db.prepare('SELECT id FROM posts WHERE id = ?').get(id);
+  const row = await db.get('SELECT id FROM posts WHERE id = ?', [id]);
   if (!row) return res.status(404).json({ error: 'not found' });
   if (action === 'approve') {
-    db.prepare("UPDATE posts SET status = 'approved' WHERE id = ?").run(id);
+    await db.run("UPDATE posts SET status = 'approved' WHERE id = ?", [id]);
   } else if (action === 'reject') {
-    db.prepare("UPDATE posts SET status = 'rejected' WHERE id = ?").run(id);
+    await db.run("UPDATE posts SET status = 'rejected' WHERE id = ?", [id]);
   } else if (action === 'delete') {
-    db.prepare('DELETE FROM posts WHERE id = ?').run(id);
+    await db.run('DELETE FROM posts WHERE id = ?', [id]);
   } else {
     return res.status(400).json({ error: 'unknown action' });
   }
@@ -252,19 +249,18 @@ app.post('/api/admin/wall/:id/:action', requireAdmin, (req, res) => {
 });
 
 // ---------- events ----------
-app.get('/api/events', (req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
-       FROM events e WHERE e.datetime > ? ORDER BY e.datetime ASC`
-    )
-    .all(Date.now());
+app.get('/api/events', async (req, res) => {
+  const rows = await db.all(
+    `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
+     FROM events e WHERE e.datetime > ? ORDER BY e.datetime ASC`,
+    [Date.now()]
+  );
   res.json(rows);
 });
 
 const PHONE_RE = /^\+?[0-9\s-]{7,20}$/;
 
-app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, (req, res) => {
+app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, async (req, res) => {
   const eventId = Number(req.params.id);
   const clientId = String(req.body?.clientId || '').trim();
   const phone = String(req.body?.phone || '').trim();
@@ -279,18 +275,19 @@ app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, (req, res) => {
   if (email && !EMAIL_RE.test(email)) {
     return res.status(400).json({ error: 'that email address does not look right' });
   }
-  const event = db.prepare('SELECT id FROM events WHERE id = ?').get(eventId);
+  const event = await db.get('SELECT id FROM events WHERE id = ?', [eventId]);
   if (!event) return res.status(404).json({ error: 'event not found' });
 
-  db.prepare(
+  await db.run(
     `INSERT INTO rsvps (event_id, client_id, ts, phone, email) VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(event_id, client_id) DO UPDATE SET phone = excluded.phone, email = excluded.email`
-  ).run(eventId, clientId, Date.now(), phone, email || null);
+     ON CONFLICT(event_id, client_id) DO UPDATE SET phone = excluded.phone, email = excluded.email`,
+    [eventId, clientId, Date.now(), phone, email || null]
+  );
 
-  const rsvp_count = db
-    .prepare('SELECT COUNT(*) AS n FROM rsvps WHERE event_id = ?')
-    .get(eventId).n;
-  res.json({ ok: true, rsvp_count });
+  const countRow = await db.get('SELECT COUNT(*) AS n FROM rsvps WHERE event_id = ?', [
+    eventId
+  ]);
+  res.json({ ok: true, rsvp_count: countRow.n });
 });
 
 // ---------- admin: events (create/edit/delete meetups) ----------
@@ -306,53 +303,52 @@ function validEventFields(body) {
   return { title, description, location, datetime };
 }
 
-app.get('/api/admin/events', requireAdmin, (req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
-       FROM events e ORDER BY e.datetime ASC`
-    )
-    .all();
+app.get('/api/admin/events', requireAdmin, async (req, res) => {
+  const rows = await db.all(
+    `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
+     FROM events e ORDER BY e.datetime ASC`
+  );
   res.json({ events: rows });
 });
 
-app.post('/api/admin/events', requireAdmin, smallJson, (req, res) => {
+app.post('/api/admin/events', requireAdmin, smallJson, async (req, res) => {
   const fields = validEventFields(req.body);
   if (!fields) return res.status(400).json({ error: 'invalid event fields' });
-  const info = db
-    .prepare(
-      'INSERT INTO events (title, description, location, datetime) VALUES (?, ?, ?, ?)'
-    )
-    .run(fields.title, fields.description, fields.location, fields.datetime);
+  const info = await db.run(
+    'INSERT INTO events (title, description, location, datetime) VALUES (?, ?, ?, ?)',
+    [fields.title, fields.description, fields.location, fields.datetime]
+  );
   res.status(201).json({ id: info.lastInsertRowid });
 });
 
-app.post('/api/admin/events/:id/update', requireAdmin, smallJson, (req, res) => {
+app.post('/api/admin/events/:id/update', requireAdmin, smallJson, async (req, res) => {
   const id = Number(req.params.id);
-  const existing = db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+  const existing = await db.get('SELECT id FROM events WHERE id = ?', [id]);
   if (!existing) return res.status(404).json({ error: 'not found' });
   const fields = validEventFields(req.body);
   if (!fields) return res.status(400).json({ error: 'invalid event fields' });
-  db.prepare(
-    'UPDATE events SET title = ?, description = ?, location = ?, datetime = ? WHERE id = ?'
-  ).run(fields.title, fields.description, fields.location, fields.datetime, id);
+  await db.run(
+    'UPDATE events SET title = ?, description = ?, location = ?, datetime = ? WHERE id = ?',
+    [fields.title, fields.description, fields.location, fields.datetime, id]
+  );
   res.json({ ok: true });
 });
 
-app.post('/api/admin/events/:id/delete', requireAdmin, (req, res) => {
+app.post('/api/admin/events/:id/delete', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  db.prepare('DELETE FROM rsvps WHERE event_id = ?').run(id);
-  const info = db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  await db.run('DELETE FROM rsvps WHERE event_id = ?', [id]);
+  const info = await db.run('DELETE FROM events WHERE id = ?', [id]);
   if (info.changes === 0) return res.status(404).json({ error: 'not found' });
   res.json({ ok: true });
 });
 
 // attendee contact info for a meetup — only ever visible here, never on the public site
-app.get('/api/admin/events/:id/rsvps', requireAdmin, (req, res) => {
+app.get('/api/admin/events/:id/rsvps', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const rows = db
-    .prepare('SELECT phone, email, ts FROM rsvps WHERE event_id = ? ORDER BY ts ASC')
-    .all(id);
+  const rows = await db.all(
+    'SELECT phone, email, ts FROM rsvps WHERE event_id = ? ORDER BY ts ASC',
+    [id]
+  );
   res.json({ rsvps: rows });
 });
 
@@ -430,7 +426,7 @@ function escapeHtml(s) {
 }
 
 // ---------- locker (keep on this site, no account — retrieval by code only) ----------
-app.post('/api/locker', lockerWriteLimiter, lockerJson, (req, res) => {
+app.post('/api/locker', lockerWriteLimiter, lockerJson, async (req, res) => {
   const type = String(req.body?.type || '').trim();
   const text = req.body?.text ? String(req.body.text) : null;
   const attachment = req.body?.attachment; // { base64, contentType }
@@ -450,26 +446,27 @@ app.post('/api/locker', lockerWriteLimiter, lockerJson, (req, res) => {
   let code;
   do {
     code = generateLockerCode();
-  } while (db.prepare('SELECT 1 FROM locker WHERE code = ?').get(code));
+  } while (await db.get('SELECT 1 FROM locker WHERE code = ?', [code]));
 
-  db.prepare(
+  await db.run(
     `INSERT INTO locker (code, type, text, attachment_base64, attachment_content_type, ts)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(
-    code,
-    type,
-    text,
-    attachment?.base64 || null,
-    attachment?.contentType || null,
-    Date.now()
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      code,
+      type,
+      text,
+      attachment?.base64 || null,
+      attachment?.contentType || null,
+      Date.now()
+    ]
   );
 
   res.status(201).json({ code });
 });
 
-app.get('/api/locker/:code', lockerReadLimiter, (req, res) => {
+app.get('/api/locker/:code', lockerReadLimiter, async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
-  const row = db.prepare('SELECT * FROM locker WHERE code = ?').get(code);
+  const row = await db.get('SELECT * FROM locker WHERE code = ?', [code]);
   if (!row) return res.status(404).json({ error: 'not found' });
   res.json({
     type: row.type,
@@ -482,6 +479,13 @@ app.get('/api/locker/:code', lockerReadLimiter, (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => {
-  console.log(`Heard.ke server listening on port ${PORT}`);
-});
+db.migrate()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Heard.ke server listening on port ${PORT}`);
+    });
+  })
+  .catch((e) => {
+    console.error('database migration failed, not starting server', e);
+    process.exit(1);
+  });
