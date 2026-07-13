@@ -363,29 +363,7 @@
   <!-- GUIDE -->
   <section class="mode" id="guide">
     <button class="clearbtn" style="margin-bottom:16px" onclick="switchMode('wall')">← Back to Wall</button>
-    <p class="eyebrow" style="margin-bottom:10px">Advice</p>
-    <div class="item"><div class="txt"><strong>Stress creeping up on you?</strong><br>Notice where you feel it in your body before it takes over: jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.</div></div>
-    <div class="item"><div class="txt"><strong>Angry and don't know where to put it?</strong><br>Anger is usually a cover for something softer: hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.</div></div>
-    <div class="item"><div class="txt"><strong>Not sleeping well?</strong><br>A racing mind at night is often the day's undealt-with stuff surfacing. Writing it down (even just a list, even in the Write tab) before bed can get it out of your head so it stops running in loops.</div></div>
-    <div class="item"><div class="txt"><strong>Struggling in a relationship?</strong><br>Most fights aren't about the dishes or being late. They're about feeling unseen. Try naming the feeling under the complaint out loud. It's uncomfortable, and it works better than arguing the surface issue.</div></div>
-    <div class="item"><div class="txt"><strong>When it feels like too much</strong><br>You don't have to have the words figured out. Call or text someone (a friend, a helpline, anyone) before you're sure what you'll say. The reaching out matters more than the script.</div></div>
-
-    <p class="eyebrow" style="margin:26px 0 10px">Talk to someone</p>
-    <div class="item"><div class="txt"><strong>Heard.ke</strong>: not urgent, but want someone to help point you toward support? Email us, any time.<br><a href="mailto:info@heard.co.ke" style="color:var(--amber-soft)">info@heard.co.ke</a></div></div>
-    <div class="item"><div class="txt"><strong>Kenya Red Cross Emergency Line</strong>: for urgent medical or safety emergencies.<br><a href="tel:1199" style="color:var(--amber-soft)">1199</a></div></div>
-    <div class="item"><div class="txt"><strong>National Police / Ambulance</strong>: if you or someone else is in immediate danger.<br><a href="tel:999" style="color:var(--amber-soft)">999</a> or <a href="tel:112" style="color:var(--amber-soft)">112</a></div></div>
-    <p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive. A hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>
-
-    <p class="eyebrow" style="margin:26px 0 10px">Worth reading</p>
-    <div class="item"><div class="txt">📖 <strong>Man's Search for Meaning</strong>, by Viktor Frankl</div></div>
-    <div class="item"><div class="txt">📖 <strong>The Body Keeps the Score</strong>, by Bessel van der Kolk</div></div>
-    <div class="item"><div class="txt">📖 <strong>No More Mr Nice Guy</strong>, by Robert Glover</div></div>
-    <div class="item"><div class="txt">📖 <strong>Atlas of the Heart</strong>, by Brené Brown</div></div>
-
-    <p class="eyebrow" style="margin:26px 0 10px">Something to put on</p>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/calming%20instrumental" target="_blank" rel="noopener" style="color:var(--amber-soft)">Calming instrumental</a>, for winding down</div></div>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/lofi%20focus" target="_blank" rel="noopener" style="color:var(--amber-soft)">Lo-fi focus</a>, for getting things done</div></div>
-    <div class="item"><div class="txt">🎧 <a href="https://open.spotify.com/search/afrobeat%20chill" target="_blank" rel="noopener" style="color:var(--amber-soft)">Afrobeat, chilled</a>, good for lifting the mood</div></div>
+    <div id="guideContent"><p style="color:var(--muted);font-size:.9rem">Loading…</p></div>
   </section>
 
   <!-- KEPT -->
@@ -462,6 +440,7 @@ function switchMode(m){
   if(m==='kept') renderKept();
   if(m==='draw') setTimeout(fitCanvas,50);
   if(m==='wall') loadWall();
+  if(m==='guide') loadGuide();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchMode(t.dataset.m)));
@@ -575,6 +554,50 @@ async function postToWall(){
 }
 async function reportPost(id){
   try{ await fetch(API_BASE+'/api/wall/'+id+'/report',{method:'POST'}); loadWall(); }catch(e){}
+}
+
+/* ---------- GUIDE ---------- */
+function linkifyContact(text){
+  let out=esc(text);
+  out=out.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,'<a href="mailto:$1" style="color:var(--amber-soft)">$1</a>');
+  out=out.replace(/(\+?\d[\d ]{1,}\d)/g,m=>'<a href="tel:'+m.replace(/[^\d+]/g,'')+'" style="color:var(--amber-soft)">'+m+'</a>');
+  return out;
+}
+async function loadGuide(){
+  const el=document.getElementById('guideContent');
+  el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Loading…</p>';
+  try{
+    const res=await fetch(API_BASE+'/api/guide');
+    if(!res.ok) throw new Error('bad response');
+    const data=await res.json();
+    const items=data.items||[];
+    const by=s=>items.filter(i=>i.section===s);
+    let html='';
+    const advice=by('advice');
+    if(advice.length){
+      html+='<p class="eyebrow" style="margin-bottom:10px">Advice</p>';
+      html+=advice.map(i=>`<div class="item"><div class="txt"><strong>${esc(i.title)}</strong><br>${esc(i.body)}</div></div>`).join('');
+    }
+    const contact=by('contact');
+    if(contact.length){
+      html+='<p class="eyebrow" style="margin:26px 0 10px">Talk to someone</p>';
+      html+=contact.map(i=>`<div class="item"><div class="txt"><strong>${esc(i.title)}</strong>: ${linkifyContact(i.body)}</div></div>`).join('');
+      html+='<p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive. A hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>';
+    }
+    const books=by('book');
+    if(books.length){
+      html+='<p class="eyebrow" style="margin:26px 0 10px">Worth reading</p>';
+      html+=books.map(i=>`<div class="item"><div class="txt">📖 <strong>${esc(i.title)}</strong>, by ${esc(i.body)}</div></div>`).join('');
+    }
+    const music=by('music');
+    if(music.length){
+      html+='<p class="eyebrow" style="margin:26px 0 10px">Something to put on</p>';
+      html+=music.map(i=>`<div class="item"><div class="txt">🎧 <a href="${esc(i.url||'#')}" target="_blank" rel="noopener" style="color:var(--amber-soft)">${esc(i.title)}</a>, ${esc(i.body)}</div></div>`).join('');
+    }
+    el.innerHTML=html || '<p style="color:var(--muted);font-size:.9rem">Nothing here yet.</p>';
+  }catch(e){
+    el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t load the guide right now. Try again in a moment.</p>';
+  }
 }
 
 /* ---------- EVENTS / CONNECT ---------- */

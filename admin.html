@@ -69,6 +69,7 @@
     <div class="section-nav">
       <button class="sectionbtn on" data-sec="wall" onclick="setSection('wall')">Wall review</button>
       <button class="sectionbtn" data-sec="events" onclick="setSection('events')">Meetups</button>
+      <button class="sectionbtn" data-sec="guide" onclick="setSection('guide')">Guide</button>
     </div>
 
     <!-- WALL -->
@@ -120,11 +121,44 @@
       <div class="status" id="eventsStatus"></div>
       <div id="eventsList"></div>
     </div>
+
+    <!-- GUIDE -->
+    <div id="section-guide" style="display:none">
+      <div class="tabs">
+        <button class="tab on" data-g="advice" onclick="setGuideTab('advice')">Advice</button>
+        <button class="tab" data-g="contact" onclick="setGuideTab('contact')">Talk to someone</button>
+        <button class="tab" data-g="book" onclick="setGuideTab('book')">Books</button>
+        <button class="tab" data-g="music" onclick="setGuideTab('music')">Music</button>
+      </div>
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn" onclick="showGuideForm()">+ Add item</button>
+      </div>
+      <div id="guideForm" style="display:none" class="form-card">
+        <div class="field">
+          <label>Title</label>
+          <input id="gi-title" placeholder="e.g. Stress creeping up on you?">
+        </div>
+        <div class="field">
+          <label id="gi-body-label">Body</label>
+          <textarea id="gi-body" placeholder="..."></textarea>
+        </div>
+        <div class="field" id="gi-url-field" style="display:none">
+          <label>Link URL</label>
+          <input id="gi-url" placeholder="https://...">
+        </div>
+        <div class="row">
+          <button class="btn" onclick="saveGuideItem()" id="gi-save">Add item</button>
+          <button class="btn ghost" onclick="hideGuideForm()">Cancel</button>
+        </div>
+      </div>
+      <div class="status" id="guideStatus"></div>
+      <div id="guideList"></div>
+    </div>
   </div>
 
 <script>
 const API_BASE='https://heard-ke.onrender.com';
-let KEY='', TAB='pending', SECTION='wall', EDITING_EVENT_ID=null;
+let KEY='', TAB='pending', SECTION='wall', EDITING_EVENT_ID=null, GUIDE_TAB='advice', EDITING_GUIDE_ID=null, GUIDE_ITEMS=[];
 
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function timeAgo(ts){const d=(Date.now()-ts)/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
@@ -152,7 +186,9 @@ function setSection(sec){
   document.querySelectorAll('.sectionbtn').forEach(b=>b.classList.toggle('on',b.dataset.sec===sec));
   document.getElementById('section-wall').style.display=sec==='wall'?'block':'none';
   document.getElementById('section-events').style.display=sec==='events'?'block':'none';
+  document.getElementById('section-guide').style.display=sec==='guide'?'block':'none';
   if(sec==='events') loadEvents();
+  if(sec==='guide') loadGuideItems();
 }
 
 /* ---------- wall review ---------- */
@@ -352,6 +388,103 @@ async function toggleAttendees(id){
   }catch(e){
     box.innerHTML='<div class="status">Could not load attendees. Try again.</div>';
   }
+}
+
+/* ---------- guide ---------- */
+const GUIDE_LABELS={advice:'Body',contact:'Description (emails and phone numbers auto-link)',book:'Author',music:'Description'};
+function setGuideTab(g){
+  GUIDE_TAB=g;
+  document.querySelectorAll('[data-g]').forEach(t=>t.classList.toggle('on',t.dataset.g===g));
+  hideGuideForm();
+  renderGuideList();
+}
+function showGuideForm(){
+  EDITING_GUIDE_ID=null;
+  document.getElementById('gi-title').value='';
+  document.getElementById('gi-body').value='';
+  document.getElementById('gi-url').value='';
+  document.getElementById('gi-body-label').textContent=GUIDE_LABELS[GUIDE_TAB];
+  document.getElementById('gi-url-field').style.display=GUIDE_TAB==='music'?'block':'none';
+  document.getElementById('gi-save').textContent='Add item';
+  document.getElementById('guideForm').style.display='block';
+}
+function hideGuideForm(){
+  EDITING_GUIDE_ID=null;
+  document.getElementById('guideForm').style.display='none';
+}
+function editGuideItem(item){
+  EDITING_GUIDE_ID=item.id;
+  document.getElementById('gi-title').value=item.title;
+  document.getElementById('gi-body').value=item.body;
+  document.getElementById('gi-url').value=item.url||'';
+  document.getElementById('gi-body-label').textContent=GUIDE_LABELS[item.section];
+  document.getElementById('gi-url-field').style.display=item.section==='music'?'block':'none';
+  document.getElementById('gi-save').textContent='Save changes';
+  document.getElementById('guideForm').style.display='block';
+  document.getElementById('guideForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function saveGuideItem(){
+  const title=document.getElementById('gi-title').value.trim();
+  const body=document.getElementById('gi-body').value.trim();
+  const url=document.getElementById('gi-url').value.trim();
+  if(!title||!body){ alert('Fill in the title and body.'); return; }
+  if(GUIDE_TAB==='music' && url && !/^https?:\/\//i.test(url)){ alert('The link must start with http:// or https://'); return; }
+  const payload={section:GUIDE_TAB, title, body, url: url||null};
+  const endpoint=EDITING_GUIDE_ID?API_BASE+'/api/admin/guide/'+EDITING_GUIDE_ID+'/update':API_BASE+'/api/admin/guide';
+  try{
+    const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':KEY},body:JSON.stringify(payload)});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error||'failed');
+    hideGuideForm();
+    loadGuideItems();
+  }catch(e){ alert('Could not save that item: '+(e.message||'try again.')); }
+}
+async function deleteGuideItem(id){
+  if(!confirm('Delete this item?')) return;
+  try{
+    const res=await fetch(API_BASE+'/api/admin/guide/'+id+'/delete',{method:'POST',headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    loadGuideItems();
+  }catch(e){ alert('That did not go through. Try again.'); }
+}
+async function moveGuideItem(id,direction){
+  try{
+    const res=await fetch(API_BASE+'/api/admin/guide/'+id+'/move',{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':KEY},body:JSON.stringify({direction})});
+    if(!res.ok) throw new Error('failed');
+    loadGuideItems();
+  }catch(e){ alert('That did not go through. Try again.'); }
+}
+async function loadGuideItems(){
+  const st=document.getElementById('guideStatus'); st.textContent='Loading…';
+  try{
+    const res=await fetch(API_BASE+'/api/admin/guide',{headers:{'x-admin-key':KEY}});
+    if(!res.ok) throw new Error('failed');
+    const data=await res.json();
+    GUIDE_ITEMS=data.items||[];
+    st.textContent='';
+    renderGuideList();
+  }catch(e){
+    st.textContent='Could not reach the server. Try again in a moment.';
+  }
+}
+function renderGuideList(){
+  const list=document.getElementById('guideList');
+  const items=GUIDE_ITEMS.filter(i=>i.section===GUIDE_TAB).sort((a,b)=>a.position-b.position);
+  if(!items.length){ list.innerHTML='<div class="empty">Nothing here yet. Add one above.</div>'; return; }
+  list.innerHTML=items.map((item,idx)=>{
+    const urlLine=item.url?'<div class="event-loc">'+esc(item.url)+'</div>':'';
+    return '<div class="card">'
+      +'<div class="txt" style="margin-bottom:6px"><strong>'+esc(item.title)+'</strong></div>'
+      +urlLine
+      +'<div class="txt">'+esc(item.body)+'</div>'
+      +'<div class="row">'
+        +'<button class="approve" onclick=\'editGuideItem('+JSON.stringify(item).replace(/'/g,"&#39;")+')\'>Edit</button>'
+        +'<button class="del" onclick="deleteGuideItem('+item.id+')">Delete</button>'
+        +(idx>0?'<button onclick="moveGuideItem('+item.id+',\'up\')">↑ Move up</button>':'')
+        +(idx<items.length-1?'<button onclick="moveGuideItem('+item.id+',\'down\')">↓ Move down</button>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
 }
 
 // auto-unlock if key already saved

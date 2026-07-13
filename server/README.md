@@ -1,6 +1,16 @@
 # Heard.ke server
 
-Backend for the anonymous Wall, Events/RSVP, and "send it to myself" email features.
+Backend for the anonymous Wall, Events/RSVP, Guide content, and "send it to myself"
+email features.
+
+## Guide content (Advice / Talk to someone / Books / Music)
+Fully editable from `admin.html` → **Guide** tab. Content lives in the `guide_items`
+table (`section`, `title`, `body`, `url`, `position`) and is fetched publicly via
+`GET /api/guide`. Contact-card bodies (e.g. "Talk to someone") are auto-linkified on
+the frontend — any email address or phone-number-looking sequence of digits in the
+body text becomes a clickable `mailto:`/`tel:` link automatically, no markup needed.
+Reordering within a section is done via up/down move buttons in the admin UI, which
+swap `position` values with the adjacent item.
 
 ## Database (Turso)
 Data is stored in [Turso](https://turso.tech), a hosted SQLite-compatible database, via

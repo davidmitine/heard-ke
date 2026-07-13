@@ -64,6 +64,15 @@ async function migrate() {
         attachment_base64 TEXT,
         attachment_content_type TEXT,
         ts INTEGER NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS guide_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        section TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        url TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        ts INTEGER NOT NULL
       )`
     ],
     'write'
@@ -100,6 +109,101 @@ async function migrate() {
     // edit/delete by hand). SQLite allows multiple NULLs under UNIQUE.
     await exec(`ALTER TABLE events ADD COLUMN gcal_uid TEXT`);
     await exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_events_gcal_uid ON events(gcal_uid)`);
+  }
+
+  const guideCount = (await get('SELECT COUNT(*) AS n FROM guide_items')).n;
+  if (guideCount === 0) {
+    const now = Date.now();
+    const row = (section, title, body, url, position) => ({
+      sql: 'INSERT INTO guide_items (section, title, body, url, position, ts) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [section, title, body, url, position, now]
+    });
+    await client.batch(
+      [
+        row(
+          'advice',
+          'Stress creeping up on you?',
+          "Notice where you feel it in your body before it takes over: jaw, chest, shoulders. A few slow breaths (in for 4, hold for 4, out for 6) tells your body it's safe faster than trying to think your way out of it.",
+          null,
+          0
+        ),
+        row(
+          'advice',
+          "Angry and don't know where to put it?",
+          'Anger is usually a cover for something softer: hurt, fear, feeling disrespected. Move first (walk, lift, hit a bag), then decide what to say. Almost nothing said in the first five minutes of anger holds up an hour later.',
+          null,
+          1
+        ),
+        row(
+          'advice',
+          'Not sleeping well?',
+          "A racing mind at night is often the day's undealt-with stuff surfacing. Writing it down (even just a list, even in the Write tab) before bed can get it out of your head so it stops running in loops.",
+          null,
+          2
+        ),
+        row(
+          'advice',
+          'Struggling in a relationship?',
+          "Most fights aren't about the dishes or being late. They're about feeling unseen. Try naming the feeling under the complaint out loud. It's uncomfortable, and it works better than arguing the surface issue.",
+          null,
+          3
+        ),
+        row(
+          'advice',
+          'When it feels like too much',
+          "You don't have to have the words figured out. Call or text someone (a friend, a helpline, anyone) before you're sure what you'll say. The reaching out matters more than the script.",
+          null,
+          4
+        ),
+        row(
+          'contact',
+          'Heard.ke',
+          'not urgent, but want someone to help point you toward support? Email us, any time. info@heard.co.ke',
+          null,
+          0
+        ),
+        row(
+          'contact',
+          'Kenya Red Cross Emergency Line',
+          'for urgent medical or safety emergencies. 1199',
+          null,
+          1
+        ),
+        row(
+          'contact',
+          'National Police / Ambulance',
+          'if you or someone else is in immediate danger. 999 or 112',
+          null,
+          2
+        ),
+        row('book', "Man's Search for Meaning", 'Viktor Frankl', null, 0),
+        row('book', 'The Body Keeps the Score', 'Bessel van der Kolk', null, 1),
+        row('book', 'No More Mr Nice Guy', 'Robert Glover', null, 2),
+        row('book', 'Atlas of the Heart', 'Brené Brown', null, 3),
+        row(
+          'music',
+          'Calming instrumental',
+          'for winding down',
+          'https://open.spotify.com/search/calming%20instrumental',
+          0
+        ),
+        row(
+          'music',
+          'Lo-fi focus',
+          'for getting things done',
+          'https://open.spotify.com/search/lofi%20focus',
+          1
+        ),
+        row(
+          'music',
+          'Afrobeat, chilled',
+          'for lifting the mood',
+          'https://open.spotify.com/search/afrobeat%20chill',
+          2
+        )
+      ],
+      'write'
+    );
   }
 
   const eventCount = (await get('SELECT COUNT(*) AS n FROM events')).n;

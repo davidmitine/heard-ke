@@ -469,6 +469,108 @@ app.get('/api/admin/events/:id/rsvps', requireAdmin, async (req, res) => {
   res.json({ rsvps: rows });
 });
 
+// ---------- guide (Advice / Talk to someone / Books / Music — all admin-editable) ----------
+const GUIDE_SECTIONS = ['advice', 'contact', 'book', 'music'];
+
+function validGuideFields(body) {
+  const section = String(body?.section || '').trim();
+  const title = String(body?.title || '').trim();
+  const itemBody = String(body?.body || '').trim();
+  let url = body?.url ? String(body.url).trim() : null;
+  if (!GUIDE_SECTIONS.includes(section)) return null;
+  if (!title || title.length > 200) return null;
+  if (!itemBody || itemBody.length > 3000) return null;
+  if (url) {
+    if (!/^https?:\/\//i.test(url) || url.length > 500) return null;
+  } else {
+    url = null;
+  }
+  return { section, title, body: itemBody, url };
+}
+
+app.get('/api/guide', async (req, res) => {
+  const rows = await db.all(
+    'SELECT id, section, title, body, url FROM guide_items ORDER BY section ASC, position ASC'
+  );
+  res.json({ items: rows });
+});
+
+app.get('/api/admin/guide', requireAdmin, async (req, res) => {
+  const rows = await db.all(
+    'SELECT * FROM guide_items ORDER BY section ASC, position ASC'
+  );
+  res.json({ items: rows });
+});
+
+app.post('/api/admin/guide', requireAdmin, smallJson, async (req, res) => {
+  const fields = validGuideFields(req.body);
+  if (!fields) return res.status(400).json({ error: 'invalid guide item fields' });
+  const maxRow = await db.get(
+    'SELECT MAX(position) AS n FROM guide_items WHERE section = ?',
+    [fields.section]
+  );
+  const position = (maxRow.n ?? -1) + 1;
+  const info = await db.run(
+    'INSERT INTO guide_items (section, title, body, url, position, ts) VALUES (?, ?, ?, ?, ?, ?)',
+    [fields.section, fields.title, fields.body, fields.url, position, Date.now()]
+  );
+  res.status(201).json({ id: info.lastInsertRowid });
+});
+
+app.post('/api/admin/guide/:id/update', requireAdmin, smallJson, async (req, res) => {
+  const id = Number(req.params.id);
+  const existing = await db.get('SELECT * FROM guide_items WHERE id = ?', [id]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  const fields = validGuideFields(req.body);
+  if (!fields) return res.status(400).json({ error: 'invalid guide item fields' });
+
+  let position = existing.position;
+  if (fields.section !== existing.section) {
+    const maxRow = await db.get(
+      'SELECT MAX(position) AS n FROM guide_items WHERE section = ?',
+      [fields.section]
+    );
+    position = (maxRow.n ?? -1) + 1;
+  }
+  await db.run(
+    'UPDATE guide_items SET section = ?, title = ?, body = ?, url = ?, position = ? WHERE id = ?',
+    [fields.section, fields.title, fields.body, fields.url, position, id]
+  );
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/guide/:id/delete', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const info = await db.run('DELETE FROM guide_items WHERE id = ?', [id]);
+  if (info.changes === 0) return res.status(404).json({ error: 'not found' });
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/guide/:id/move', requireAdmin, smallJson, async (req, res) => {
+  const id = Number(req.params.id);
+  const direction = req.body?.direction === 'up' ? 'up' : 'down';
+  const item = await db.get('SELECT * FROM guide_items WHERE id = ?', [id]);
+  if (!item) return res.status(404).json({ error: 'not found' });
+
+  const neighbor = await db.get(
+    direction === 'up'
+      ? 'SELECT * FROM guide_items WHERE section = ? AND position < ? ORDER BY position DESC LIMIT 1'
+      : 'SELECT * FROM guide_items WHERE section = ? AND position > ? ORDER BY position ASC LIMIT 1',
+    [item.section, item.position]
+  );
+  if (!neighbor) return res.json({ ok: true }); // already at the edge, nothing to do
+
+  await db.run('UPDATE guide_items SET position = ? WHERE id = ?', [
+    neighbor.position,
+    item.id
+  ]);
+  await db.run('UPDATE guide_items SET position = ? WHERE id = ?', [
+    item.position,
+    neighbor.id
+  ]);
+  res.json({ ok: true });
+});
+
 // ---------- send to self (email) ----------
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'Heard.ke <onboarding@resend.dev>';
