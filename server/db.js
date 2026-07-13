@@ -92,6 +92,16 @@ async function migrate() {
     await exec(`ALTER TABLE rsvps ADD COLUMN email TEXT`);
   }
 
+  // ---- migration: Google Calendar sync tracking on events ----
+  const eventCols = await tableColumns('events');
+  if (!eventCols.includes('gcal_uid')) {
+    // NULL for manually-created events; set for events synced in from Google
+    // Calendar, so we know which ones to keep in sync (and which are safe to
+    // edit/delete by hand). SQLite allows multiple NULLs under UNIQUE.
+    await exec(`ALTER TABLE events ADD COLUMN gcal_uid TEXT`);
+    await exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_events_gcal_uid ON events(gcal_uid)`);
+  }
+
   const eventCount = (await get('SELECT COUNT(*) AS n FROM events')).n;
   if (eventCount === 0) {
     const day = 24 * 60 * 60 * 1000;

@@ -15,6 +15,30 @@ Without both set, the server falls back to a local file (`heard.db`) — fine fo
 development, but back to the same reset-on-restart problem if deployed without these set.
 Schema creation and migrations run automatically on startup either way.
 
+## Meetups sync (Google Calendar)
+Optional. The organizer can manage meetups directly in a Google Calendar instead of (or
+alongside) the admin dashboard's manual form. It's a one-way sync — Google Calendar to
+our `events` table — refreshed every 10 minutes and on-demand via a "Sync Google
+Calendar" button in `admin.html`. Requires no OAuth: it reads the calendar's public
+iCal feed.
+
+Env var:
+- `GOOGLE_CALENDAR_ICS_URL` — the calendar's public iCal URL (Google Calendar →
+  calendar settings → "Integrate calendar" → "Public URL to this calendar"). The
+  calendar must have "Make available to public" → "See all event details" turned on.
+
+Events synced from Google Calendar are tagged internally (`gcal_uid`) and shown with a
+"Google Calendar" badge in the admin dashboard — Edit/Delete are disabled for them there
+since Google Calendar is the source of truth; edit or delete the event in Google
+Calendar itself and it'll sync in on the next refresh. Manually-added events (via the
+admin "+ Add a meetup" form) are untouched by sync and keep working exactly as before,
+side by side with synced ones. Recurring events (weekly, etc.) are expanded into
+individual occurrences up to 180 days out. RSVPs work identically on synced and manual
+events; nothing about the public site or RSVP flow changes.
+
+If `GOOGLE_CALENDAR_ICS_URL` isn't set, this feature is simply inactive — the admin
+dashboard says so, and everything else works as before.
+
 ## Email sending (Resend)
 Set these env vars to enable "send it to myself" emails:
 - `RESEND_API_KEY` — from resend.com

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const ical = require('node-ical');
 const db = require('./db');
 
 const app = express();
@@ -290,6 +291,92 @@ app.post('/api/events/:id/rsvp', rsvpLimiter, smallJson, async (req, res) => {
   res.json({ ok: true, rsvp_count: countRow.n });
 });
 
+// ---------- Google Calendar sync (one-way: Calendar -> our events table) ----------
+// The organizer manages meetups in a Google Calendar; we pull it in periodically
+// via its public iCal feed (no OAuth needed) so both the admin dashboard and the
+// public site stay in sync automatically. Manually-added events (gcal_uid IS NULL)
+// are never touched by this.
+const GOOGLE_CALENDAR_ICS_URL = process.env.GOOGLE_CALENDAR_ICS_URL;
+const SYNC_WINDOW_DAYS = 180;
+let lastSync = { at: null, ok: null, count: 0, error: null };
+
+function occurrenceFields(ev, start) {
+  const title = String(ev.summary || 'Meetup').trim().slice(0, 200) || 'Meetup';
+  const description = String(ev.description || 'See Google Calendar for details').trim().slice(0, 2000);
+  const location = String(ev.location || 'Location on Google Calendar').trim().slice(0, 200);
+  return { title, description, location, datetime: start.getTime() };
+}
+
+async function syncGoogleCalendar() {
+  if (!GOOGLE_CALENDAR_ICS_URL) return { ok: false, count: 0, error: 'not configured' };
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+  const data = await ical.async.fromURL(GOOGLE_CALENDAR_ICS_URL);
+  const events = Object.values(data).filter((e) => e.type === 'VEVENT');
+
+  const seen = new Map(); // gcal_uid -> fields
+  for (const ev of events) {
+    if (!ev.uid || !ev.start) continue;
+
+    if (ev.rrule) {
+      let occurrences = [];
+      try {
+        occurrences = ev.rrule.between(now, windowEnd, true);
+      } catch (e) {
+        console.error('rrule expansion failed for', ev.uid, e);
+      }
+      for (const start of occurrences) {
+        const key = `${ev.uid}::${start.toISOString()}`;
+        seen.set(key, occurrenceFields(ev, start));
+      }
+      // per-instance overrides (moved/edited single occurrences of a series)
+      if (ev.recurrences) {
+        for (const override of Object.values(ev.recurrences)) {
+          if (!override.start || override.start < now || override.start > windowEnd) continue;
+          const key = `${ev.uid}::${override.start.toISOString()}`;
+          seen.set(key, occurrenceFields(override, override.start));
+        }
+      }
+    } else {
+      if (ev.start < now || ev.start > windowEnd) continue;
+      seen.set(ev.uid, occurrenceFields(ev, ev.start));
+    }
+  }
+
+  for (const [gcalUid, fields] of seen) {
+    await db.run(
+      `INSERT INTO events (title, description, location, datetime, gcal_uid) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(gcal_uid) DO UPDATE SET title = excluded.title, description = excluded.description,
+         location = excluded.location, datetime = excluded.datetime`,
+      [fields.title, fields.description, fields.location, fields.datetime, gcalUid]
+    );
+  }
+
+  // drop previously-synced events that no longer appear in the feed (deleted/moved in Calendar)
+  const priorSynced = await db.all(
+    'SELECT id, gcal_uid FROM events WHERE gcal_uid IS NOT NULL'
+  );
+  for (const row of priorSynced) {
+    if (!seen.has(row.gcal_uid)) {
+      await db.run('DELETE FROM rsvps WHERE event_id = ?', [row.id]);
+      await db.run('DELETE FROM events WHERE id = ?', [row.id]);
+    }
+  }
+
+  return { ok: true, count: seen.size, error: null };
+}
+
+async function runSync() {
+  try {
+    const result = await syncGoogleCalendar();
+    lastSync = { at: Date.now(), ok: result.ok, count: result.count, error: result.error };
+  } catch (e) {
+    console.error('google calendar sync failed', e);
+    lastSync = { at: Date.now(), ok: false, count: 0, error: e.message };
+  }
+}
+
 // ---------- admin: events (create/edit/delete meetups) ----------
 function validEventFields(body) {
   const title = String(body?.title || '').trim();
@@ -308,7 +395,26 @@ app.get('/api/admin/events', requireAdmin, async (req, res) => {
     `SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) AS rsvp_count
      FROM events e ORDER BY e.datetime ASC`
   );
-  res.json({ events: rows });
+  res.json({
+    events: rows.map((r) => ({ ...r, synced: !!r.gcal_uid })),
+    sync: {
+      enabled: !!GOOGLE_CALENDAR_ICS_URL,
+      lastSyncedAt: lastSync.at,
+      lastSyncOk: lastSync.ok,
+      lastSyncError: lastSync.error
+    }
+  });
+});
+
+app.post('/api/admin/events/sync', requireAdmin, async (req, res) => {
+  if (!GOOGLE_CALENDAR_ICS_URL) {
+    return res.status(503).json({ error: 'Google Calendar sync is not configured' });
+  }
+  await runSync();
+  if (!lastSync.ok) {
+    return res.status(502).json({ error: lastSync.error || 'sync failed' });
+  }
+  res.json({ ok: true, count: lastSync.count });
 });
 
 app.post('/api/admin/events', requireAdmin, smallJson, async (req, res) => {
@@ -323,8 +429,13 @@ app.post('/api/admin/events', requireAdmin, smallJson, async (req, res) => {
 
 app.post('/api/admin/events/:id/update', requireAdmin, smallJson, async (req, res) => {
   const id = Number(req.params.id);
-  const existing = await db.get('SELECT id FROM events WHERE id = ?', [id]);
+  const existing = await db.get('SELECT id, gcal_uid FROM events WHERE id = ?', [id]);
   if (!existing) return res.status(404).json({ error: 'not found' });
+  if (existing.gcal_uid) {
+    return res
+      .status(400)
+      .json({ error: 'this event is managed in Google Calendar — edit it there' });
+  }
   const fields = validEventFields(req.body);
   if (!fields) return res.status(400).json({ error: 'invalid event fields' });
   await db.run(
@@ -336,9 +447,15 @@ app.post('/api/admin/events/:id/update', requireAdmin, smallJson, async (req, re
 
 app.post('/api/admin/events/:id/delete', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
+  const existing = await db.get('SELECT id, gcal_uid FROM events WHERE id = ?', [id]);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+  if (existing.gcal_uid) {
+    return res
+      .status(400)
+      .json({ error: 'this event is managed in Google Calendar — delete it there' });
+  }
   await db.run('DELETE FROM rsvps WHERE event_id = ?', [id]);
-  const info = await db.run('DELETE FROM events WHERE id = ?', [id]);
-  if (info.changes === 0) return res.status(404).json({ error: 'not found' });
+  await db.run('DELETE FROM events WHERE id = ?', [id]);
   res.json({ ok: true });
 });
 
@@ -480,7 +597,11 @@ app.get('/api/locker/:code', lockerReadLimiter, async (req, res) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 db.migrate()
-  .then(() => {
+  .then(async () => {
+    if (GOOGLE_CALENDAR_ICS_URL) {
+      await runSync(); // populate before serving traffic
+      setInterval(runSync, 10 * 60 * 1000);
+    }
     app.listen(PORT, () => {
       console.log(`Heard.ke server listening on port ${PORT}`);
     });
