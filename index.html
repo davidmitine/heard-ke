@@ -55,6 +55,9 @@
 
   .intro{margin:14px 0 20px}
   .intro h1{font-size:clamp(1.7rem,6vw,2.2rem);font-weight:800}
+  .type-cursor{display:inline-block;width:3px;height:.85em;background:var(--amber);margin-left:3px;vertical-align:-.08em;animation:caretBlink 1s step-end infinite;transition:opacity .5s ease}
+  .type-cursor.gone{opacity:0}
+  @keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
   .intro p{color:var(--muted);margin-top:8px}
   .intro .welcome{color:var(--cream);font-size:1.14rem;line-height:1.55;margin-top:12px;max-width:44ch}
   .intro .intro-sub{color:var(--muted);font-size:.95rem;margin-top:14px}
@@ -257,7 +260,7 @@
 
   <div class="intro">
     <p class="eyebrow">No name. No account. No download.</p>
-    <h1>Let it out.</h1>
+    <h1><span id="typeText">Let it out.</span><span class="type-cursor" id="typeCursor" aria-hidden="true"></span></h1>
     <p class="welcome">We know you're going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
     <p class="intro-sub">Write it, say it, or draw it, then choose what happens to it.</p>
   </div>
@@ -424,6 +427,24 @@
 </div>
 
 <script>
+/* ---------- headline type-on animation ---------- */
+(function(){
+  const el=document.getElementById('typeText');
+  const cursor=document.getElementById('typeCursor');
+  if(!el||!cursor) return;
+  const full=el.textContent;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.textContent='';
+  let i=0;
+  function tick(){
+    el.textContent=full.slice(0,i);
+    i++;
+    if(i<=full.length){ setTimeout(tick,55); }
+    else { setTimeout(()=>cursor.classList.add('gone'),1100); }
+  }
+  setTimeout(tick,350);
+})();
+
 /* ---------- api ---------- */
 const API_BASE = 'https://heard-ke.onrender.com';
 function getClientId(){
