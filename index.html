@@ -277,8 +277,9 @@
   <section class="mode on" id="write">
     <textarea id="dump" placeholder="Just start. Nobody's reading this. Get it out of your head and onto the page."></textarea>
     <div class="nudge" id="nudgeW" style="display:none">
-      <p>That's a lot to carry on your own. You don't have to. A real person is on the line, any time.</p>
-      <a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>
+      <p>That's a lot to carry on your own. You don't have to. Email us and we'll help connect you with real support.</p>
+      <a href="mailto:info@heard.co.ke">Email info@heard.co.ke</a>
+      <p style="margin-top:10px;margin-bottom:0;font-size:.82rem;color:var(--muted)">In danger right now? Call <a href="tel:999" style="background:none;padding:0;display:inline;color:var(--amber-soft)">999</a> or <a href="tel:112" style="background:none;padding:0;display:inline;color:var(--amber-soft)">112</a>.</p>
     </div>
     <div class="actions">
       <button class="act release" onclick="releaseText()">Release it <small>Let it burn. Nothing is saved.</small></button>
@@ -346,8 +347,9 @@
   <section class="mode" id="wall">
     <textarea id="wallDump" placeholder="Say it here. Other men will read this. No name attached, ever." maxlength="20000"></textarea>
     <div class="nudge" id="nudgeWall" style="display:none">
-      <p>That's a lot to carry on your own. You don't have to. A real person is on the line, any time.</p>
-      <a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>
+      <p>That's a lot to carry on your own. You don't have to. Email us and we'll help connect you with real support.</p>
+      <a href="mailto:info@heard.co.ke">Email info@heard.co.ke</a>
+      <p style="margin-top:10px;margin-bottom:0;font-size:.82rem;color:var(--muted)">In danger right now? Call <a href="tel:999" style="background:none;padding:0;display:inline;color:var(--amber-soft)">999</a> or <a href="tel:112" style="background:none;padding:0;display:inline;color:var(--amber-soft)">112</a>.</p>
     </div>
     <div class="actions">
       <button class="act say" id="wallPostBtn" onclick="postToWall()">Post anonymously <small>Other men will hear you. No name attached.</small></button>
@@ -369,7 +371,7 @@
     <div class="item"><div class="txt"><strong>When it feels like too much</strong><br>You don't have to have the words figured out. Call or text someone (a friend, a helpline, anyone) before you're sure what you'll say. The reaching out matters more than the script.</div></div>
 
     <p class="eyebrow" style="margin:26px 0 10px">Talk to someone</p>
-    <div class="item"><div class="txt"><strong>Befrienders Kenya</strong>: free, confidential emotional support, any time.<br><a href="tel:+254722178177" style="color:var(--amber-soft)">0722 178 177</a></div></div>
+    <div class="item"><div class="txt"><strong>Heard.ke</strong>: not urgent, but want someone to help point you toward support? Email us, any time.<br><a href="mailto:info@heard.co.ke" style="color:var(--amber-soft)">info@heard.co.ke</a></div></div>
     <div class="item"><div class="txt"><strong>Kenya Red Cross Emergency Line</strong>: for urgent medical or safety emergencies.<br><a href="tel:1199" style="color:var(--amber-soft)">1199</a></div></div>
     <div class="item"><div class="txt"><strong>National Police / Ambulance</strong>: if you or someone else is in immediate danger.<br><a href="tel:999" style="color:var(--amber-soft)">999</a> or <a href="tel:112" style="color:var(--amber-soft)">112</a></div></div>
     <p style="color:var(--muted);font-size:.82rem;margin-top:6px">This list is a starting point, not exhaustive. A hospital, clinic, or counselor near you can also help. In danger right now, always call emergency services first.</p>
@@ -405,7 +407,7 @@
     <div id="eventsList"></div>
   </div>
 
-  <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:+254722178177">0722 178 177</a>.</p>
+  <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:999">999</a> or <a href="tel:112">112</a>. Want to talk to someone? Email <a href="mailto:info@heard.co.ke">info@heard.co.ke</a>.</p>
 </div>
 
 <div class="burn" id="burn">
@@ -563,7 +565,7 @@ async function postToWall(){
     wallDump.value=''; document.getElementById('nudgeWall').style.display='none';
     const confirm=document.getElementById('wallConfirm');
     let msg='<p><strong>You\'ve been heard.</strong> Your post will appear on the wall once it\'s been reviewed.</p>';
-    if(data.helpline){ msg+='<a href="tel:+254722178177">Call Befrienders Kenya · 0722 178 177</a>'; }
+    if(data.helpline){ msg+='<a href="mailto:'+data.helpline.email+'">Email '+data.helpline.email+'</a><p style="margin-top:8px;margin-bottom:0;font-size:.82rem">In danger right now? Call <a href="tel:999">999</a> or <a href="tel:112">112</a>.</p>'; }
     confirm.innerHTML=msg; confirm.style.display='block';
     confirm.scrollIntoView({behavior:'smooth',block:'center'});
     setTimeout(()=>{ confirm.style.display='none'; }, 12000);

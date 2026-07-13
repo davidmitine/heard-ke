@@ -28,7 +28,7 @@ app.use(
   })
 );
 
-// same phrase list the client already uses to trigger the Befrienders nudge
+// same phrase list the client already uses to trigger the support nudge
 const HEAVY_RE = /\b(kill myself|end it|no point|can't go on|cant go on|suicide|give up|worthless)\b/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -193,7 +193,7 @@ app.post('/api/wall', postLimiter, wallJson, async (req, res) => {
     held: true,
     flagged: !!flagged,
     helpline: flagged
-      ? { name: 'Befrienders Kenya', phone: '+254722178177' }
+      ? { name: 'Heard.ke', email: 'info@heard.co.ke' }
       : null
   });
 });
