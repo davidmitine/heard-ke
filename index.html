@@ -559,7 +559,7 @@ async function postToWall(){
   }finally{ btn.disabled=false; }
 }
 async function reportPost(id){
-  try{ await fetch(API_BASE+'/api/wall/'+id+'/report',{method:'POST'}); loadWall(); }catch(e){}
+  try{ await fetch(API_BASE+'/api/wall/'+id+'/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:getClientId()})}); loadWall(); }catch(e){}
 }
 
 /* ---------- GUIDE ---------- */

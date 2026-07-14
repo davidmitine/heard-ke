@@ -5,6 +5,11 @@ const ical = require('node-ical');
 const db = require('./db');
 
 const app = express();
+// Render (and Cloudflare in front of it) terminate TLS and forward the real
+// client IP in X-Forwarded-For. Trust exactly one proxy hop so express-rate-limit
+// keys off the visitor's IP, not the proxy's — otherwise every visitor shares a
+// single rate-limit bucket. Kept at 1 (not `true`) so clients can't spoof XFF.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4000;
 // comma-separated list, e.g. "https://www.heard.co.ke,https://heard-ke.netlify.app"
 const ALLOWED_ORIGINS = (process.env.CLIENT_ORIGIN || '*')
@@ -33,6 +38,7 @@ const HEAVY_RE = /\b(kill myself|end it|no point|can't go on|cant go on|suicide|
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const postLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
+const reportLimiter = rateLimit({ windowMs: 60 * 1000, max: 15 });
 const rsvpLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
 const emailLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
 const lockerWriteLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
@@ -198,13 +204,33 @@ app.post('/api/wall', postLimiter, wallJson, async (req, res) => {
   });
 });
 
-app.post('/api/wall/:id/report', async (req, res) => {
+// Distinct reporters needed before a live post is pulled back for re-review.
+const REPORTS_TO_HIDE = 2;
+
+app.post('/api/wall/:id/report', reportLimiter, smallJson, async (req, res) => {
   const id = Number(req.params.id);
+  const clientId = String(req.body?.clientId || '').trim();
+  if (!clientId || clientId.length > 100) {
+    return res.status(400).json({ error: 'clientId required' });
+  }
   const row = await db.get('SELECT * FROM posts WHERE id = ?', [id]);
   if (!row) return res.status(404).json({ error: 'not found' });
-  const reports = row.reports + 1;
+
+  // One report per client per post. The PK makes repeat reports from the same
+  // client no-ops, so a single actor can't inflate the count and take a post
+  // down on their own — REPORTS_TO_HIDE distinct devices are required.
+  await db.run(
+    'INSERT OR IGNORE INTO post_reports (post_id, client_id, ts) VALUES (?, ?, ?)',
+    [id, clientId, Date.now()]
+  );
+  const countRow = await db.get(
+    'SELECT COUNT(*) AS n FROM post_reports WHERE post_id = ?',
+    [id]
+  );
+  const reports = countRow.n;
+
   let status = row.status;
-  if (reports >= 2 && status === 'approved') {
+  if (reports >= REPORTS_TO_HIDE && status === 'approved') {
     status = 'pending'; // pull it off the wall and back into your queue
     notifyModerator({ text: row.text, flagged: row.flagged, reported: true }).catch(
       (e) => console.error('moderator alert', e)

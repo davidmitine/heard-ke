@@ -57,6 +57,12 @@ async function migrate() {
         ts INTEGER NOT NULL,
         PRIMARY KEY (event_id, client_id)
       )`,
+      `CREATE TABLE IF NOT EXISTS post_reports (
+        post_id INTEGER NOT NULL,
+        client_id TEXT NOT NULL,
+        ts INTEGER NOT NULL,
+        PRIMARY KEY (post_id, client_id)
+      )`,
       `CREATE TABLE IF NOT EXISTS locker (
         code TEXT PRIMARY KEY,
         type TEXT NOT NULL,
