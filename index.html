@@ -433,6 +433,44 @@
 
 /* ---------- api ---------- */
 const API_BASE = 'https://heard-ke.onrender.com';
+
+/* ---------- Cloudflare Turnstile (bot-check for "email it to myself") ----------
+   Paste your Turnstile SITE key below to switch the check on. It's a public key,
+   safe to ship in the page. Leave it '' and everything works exactly as before
+   (the backend still enforces its daily send cap either way). The matching
+   SECRET key goes in Render as TURNSTILE_SECRET_KEY. */
+const TURNSTILE_SITEKEY = '';
+
+let _tsWidgetId = null, _tsResolve = null;
+if (TURNSTILE_SITEKEY) {
+  const s = document.createElement('script');
+  s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  s.async = true; s.defer = true;
+  document.head.appendChild(s);
+}
+function getTurnstileToken(){
+  // No key configured, or the script hasn't loaded: send nothing. The backend
+  // skips verification when its secret is unset, so this stays a no-op until
+  // both halves are wired up.
+  if(!TURNSTILE_SITEKEY || typeof turnstile === 'undefined') return Promise.resolve(null);
+  if(_tsWidgetId === null){
+    let host = document.getElementById('ts-container');
+    if(!host){ host = document.createElement('div'); host.id = 'ts-container'; host.style.display = 'none'; document.body.appendChild(host); }
+    _tsWidgetId = turnstile.render('#ts-container', {
+      sitekey: TURNSTILE_SITEKEY,
+      size: 'invisible',
+      callback: (token)=>{ if(_tsResolve){ const r=_tsResolve; _tsResolve=null; r(token); } },
+      'error-callback': ()=>{ if(_tsResolve){ const r=_tsResolve; _tsResolve=null; r(null); } }
+    });
+  }
+  return new Promise((resolve)=>{
+    _tsResolve = resolve;
+    try{ turnstile.reset(_tsWidgetId); turnstile.execute(_tsWidgetId); }
+    catch(e){ _tsResolve=null; resolve(null); }
+    setTimeout(()=>{ if(_tsResolve){ _tsResolve=null; resolve(null); } }, 8000);
+  });
+}
+
 function getClientId(){
   let id=localStorage.getItem('heardke_client_id');
   if(!id){ id='c'+Date.now()+Math.random().toString(36).slice(2); localStorage.setItem('heardke_client_id',id); }
@@ -687,7 +725,8 @@ async function sendToEmail(type,text,attachment,btn){
   if(!trimmed) return false;
   if(btn) btn.disabled=true;
   try{
-    const res=await fetch(API_BASE+'/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:trimmed,type,text,attachment})});
+    const turnstileToken=await getTurnstileToken();
+    const res=await fetch(API_BASE+'/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:trimmed,type,text,attachment,turnstileToken})});
     const data=await res.json().catch(()=>({}));
     if(!res.ok) throw new Error(data.error||'failed');
     alert('Sent to '+trimmed+'.');

@@ -601,6 +601,54 @@ app.post('/api/admin/guide/:id/move', requireAdmin, smallJson, async (req, res) 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'Heard.ke <onboarding@resend.dev>';
 
+// Abuse controls for the email relay. This endpoint sends from our verified
+// domain to an arbitrary address, so without a gate it's a spam/phishing cannon
+// that would burn the domain's deliverability. Two layers:
+//   1. Cloudflare Turnstile — proves a real browser, blocks scripted abuse.
+//   2. A hard global daily cap — bounds the damage even if the gate is beaten.
+// Both degrade gracefully: if TURNSTILE_SECRET_KEY is unset the check is skipped
+// (so the site keeps working until the widget is wired up), while the daily cap
+// is always enforced.
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
+// Parsed so that MAX_EMAILS_PER_DAY=0 means "0" (send disabled), not the default.
+const _maxEmails = Number(process.env.MAX_EMAILS_PER_DAY);
+const MAX_EMAILS_PER_DAY = Number.isFinite(_maxEmails) && _maxEmails >= 0 ? _maxEmails : 200;
+
+async function verifyTurnstile(token, ip) {
+  if (!TURNSTILE_SECRET_KEY) return { ok: true }; // not configured yet — skip
+  if (!token) return { ok: false };
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', TURNSTILE_SECRET_KEY);
+    params.append('response', token);
+    if (ip) params.append('remoteip', ip);
+    const r = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      { method: 'POST', body: params }
+    );
+    const data = await r.json();
+    return { ok: !!data.success };
+  } catch (e) {
+    console.error('turnstile verify error', e);
+    return { ok: false };
+  }
+}
+
+function utcDayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC
+}
+async function emailsSentToday() {
+  const row = await db.get('SELECT count FROM email_quota WHERE day = ?', [utcDayKey()]);
+  return row ? row.count : 0;
+}
+async function bumpEmailQuota() {
+  await db.run(
+    `INSERT INTO email_quota (day, count) VALUES (?, 1)
+     ON CONFLICT(day) DO UPDATE SET count = count + 1`,
+    [utcDayKey()]
+  );
+}
+
 app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
   if (!RESEND_API_KEY) {
     return res.status(503).json({ error: 'email sending is not configured yet' });
@@ -618,6 +666,17 @@ app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
   }
   if (text.length > MAX_POST_LENGTH) {
     return res.status(400).json({ error: 'text too long' });
+  }
+
+  // Bot gate, then the hard daily ceiling — both before we touch Resend.
+  const ts = await verifyTurnstile(req.body?.turnstileToken, req.ip);
+  if (!ts.ok) {
+    return res.status(403).json({ error: 'could not verify you are human, please try again' });
+  }
+  if ((await emailsSentToday()) >= MAX_EMAILS_PER_DAY) {
+    return res
+      .status(429)
+      .json({ error: 'the daily email limit was reached, please try again tomorrow' });
   }
 
   const subjects = {
@@ -657,6 +716,7 @@ app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
       console.error('resend error', r.status, detail);
       return res.status(502).json({ error: 'failed to send email' });
     }
+    await bumpEmailQuota(); // only count sends that actually went out
     res.json({ ok: true });
   } catch (e) {
     console.error('send-email error', e);

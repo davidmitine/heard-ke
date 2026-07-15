@@ -63,6 +63,10 @@ async function migrate() {
         ts INTEGER NOT NULL,
         PRIMARY KEY (post_id, client_id)
       )`,
+      `CREATE TABLE IF NOT EXISTS email_quota (
+        day TEXT PRIMARY KEY,
+        count INTEGER NOT NULL DEFAULT 0
+      )`,
       `CREATE TABLE IF NOT EXISTS locker (
         code TEXT PRIMARY KEY,
         type TEXT NOT NULL,

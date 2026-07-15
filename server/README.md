@@ -58,6 +58,23 @@ Set these env vars to enable "send it to myself" emails:
 If `RESEND_API_KEY` isn't set, the endpoint returns 503 and the frontend falls back to
 a local download automatically.
 
+### Abuse controls
+This endpoint sends from your verified domain to an arbitrary address, so it's gated on
+two layers to stop it being used as a spam/phishing relay:
+
+- **Cloudflare Turnstile** (bot-check). Set `TURNSTILE_SECRET_KEY` (the *secret* key)
+  here, and paste the matching *site* key into `TURNSTILE_SITEKEY` at the top of the
+  `<script>` in `index.html`. Create both under one free widget at Cloudflare dashboard →
+  Turnstile → Add widget (add your domains, `localhost` too for testing). Until the
+  secret is set, the check is skipped so the site keeps working; set it and the site key
+  together to switch the gate on.
+- **Daily send cap** — `MAX_EMAILS_PER_DAY` (default `200`). A hard global ceiling across
+  all users, always enforced, that bounds the damage even if the bot-check is beaten.
+  Tracked in the `email_quota` table (per UTC day). Set to `0` to disable sending
+  entirely. Only successful sends count toward it.
+
+The existing per-IP rate limit (5/min) still applies on top of both.
+
 ## Wall moderation
 Every wall post is held for review and only appears publicly once approved on `admin.html`.
 
@@ -75,8 +92,9 @@ Env vars:
   Requires `RESEND_API_KEY` to be set for alerts to send.
 - `ADMIN_URL` — link included in alert emails (defaults to https://www.heard.co.ke/admin.html).
 
-Community reports: a public post pulled back to pending after 2 reports, and the
-reviewer is alerted.
+Community reports: a public post is pulled back to pending once 2 *distinct* devices
+report it (deduped per client via the `post_reports` table, so no single person can take
+a post down alone), and the reviewer is alerted.
 
 ## Run locally
 ```
