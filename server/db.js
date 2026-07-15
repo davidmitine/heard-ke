@@ -67,6 +67,10 @@ async function migrate() {
         day TEXT PRIMARY KEY,
         count INTEGER NOT NULL DEFAULT 0
       )`,
+      `CREATE TABLE IF NOT EXISTS locker_quota (
+        day TEXT PRIMARY KEY,
+        count INTEGER NOT NULL DEFAULT 0
+      )`,
       `CREATE TABLE IF NOT EXISTS locker (
         code TEXT PRIMARY KEY,
         type TEXT NOT NULL,

@@ -637,13 +637,15 @@ async function verifyTurnstile(token, ip) {
 function utcDayKey() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC
 }
-async function emailsSentToday() {
-  const row = await db.get('SELECT count FROM email_quota WHERE day = ?', [utcDayKey()]);
+// Per-UTC-day counters backing the email and locker daily caps. `table` is a
+// fixed internal constant ('email_quota' / 'locker_quota'), never user input.
+async function quotaUsedToday(table) {
+  const row = await db.get(`SELECT count FROM ${table} WHERE day = ?`, [utcDayKey()]);
   return row ? row.count : 0;
 }
-async function bumpEmailQuota() {
+async function bumpQuota(table) {
   await db.run(
-    `INSERT INTO email_quota (day, count) VALUES (?, 1)
+    `INSERT INTO ${table} (day, count) VALUES (?, 1)
      ON CONFLICT(day) DO UPDATE SET count = count + 1`,
     [utcDayKey()]
   );
@@ -673,7 +675,7 @@ app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
   if (!ts.ok) {
     return res.status(403).json({ error: 'could not verify you are human, please try again' });
   }
-  if ((await emailsSentToday()) >= MAX_EMAILS_PER_DAY) {
+  if ((await quotaUsedToday('email_quota')) >= MAX_EMAILS_PER_DAY) {
     return res
       .status(429)
       .json({ error: 'the daily email limit was reached, please try again tomorrow' });
@@ -716,7 +718,7 @@ app.post('/api/send-email', emailLimiter, emailJson, async (req, res) => {
       console.error('resend error', r.status, detail);
       return res.status(502).json({ error: 'failed to send email' });
     }
-    await bumpEmailQuota(); // only count sends that actually went out
+    await bumpQuota('email_quota'); // only count sends that actually went out
     res.json({ ok: true });
   } catch (e) {
     console.error('send-email error', e);
@@ -731,6 +733,53 @@ function escapeHtml(s) {
 }
 
 // ---------- locker (keep on this site, no account — retrieval by code only) ----------
+// This endpoint accepts unauthenticated writes and stores them (audio/drawings
+// as base64 blobs) in the shared database, so it needs the same abuse controls
+// as the email relay plus limits on what a single write can stash: a bot gate,
+// a hard daily write cap, an attachment size ceiling, and a content-type
+// allowlist. Without these it's a cheap way to fill the (free-tier) database.
+const MAX_LOCKER_WRITES_PER_DAY =
+  Number.isFinite(Number(process.env.MAX_LOCKER_WRITES_PER_DAY)) &&
+  Number(process.env.MAX_LOCKER_WRITES_PER_DAY) >= 0
+    ? Number(process.env.MAX_LOCKER_WRITES_PER_DAY)
+    : 200;
+const MAX_ATTACHMENT_MB =
+  Number(process.env.MAX_ATTACHMENT_MB) > 0 ? Number(process.env.MAX_ATTACHMENT_MB) : 10;
+const MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024;
+// Only the media types the frontend actually produces (recorder + canvas PNG).
+const LOCKER_CONTENT_TYPES = new Set([
+  'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/wav', 'audio/mpeg',
+  'image/png', 'image/jpeg', 'image/webp'
+]);
+
+function base64DecodedBytes(b64) {
+  const len = b64.length;
+  if (len === 0) return 0;
+  const pad = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
+  return Math.floor((len * 3) / 4) - pad;
+}
+
+// Returns { ok, error?, baseType? }. baseType is the allowlisted content type
+// with any ";codecs=..." suffix stripped — that's what we persist and later
+// reflect into a data: URI, so it must be sanitised here.
+function validAttachment(type, attachment) {
+  if (!attachment || typeof attachment.base64 !== 'string' || !attachment.base64) {
+    return { ok: false, error: 'attachment required' };
+  }
+  const baseType = String(attachment.contentType || '').split(';')[0].trim().toLowerCase();
+  if (!LOCKER_CONTENT_TYPES.has(baseType)) {
+    return { ok: false, error: 'unsupported attachment type' };
+  }
+  const expectedPrefix = type === 'audio' ? 'audio/' : 'image/';
+  if (!baseType.startsWith(expectedPrefix)) {
+    return { ok: false, error: 'attachment type does not match content' };
+  }
+  if (base64DecodedBytes(attachment.base64) > MAX_ATTACHMENT_BYTES) {
+    return { ok: false, error: `attachment too large (max ${MAX_ATTACHMENT_MB}MB)` };
+  }
+  return { ok: true, baseType };
+}
+
 app.post('/api/locker', lockerWriteLimiter, lockerJson, async (req, res) => {
   const type = String(req.body?.type || '').trim();
   const text = req.body?.text ? String(req.body.text) : null;
@@ -744,8 +793,22 @@ app.post('/api/locker', lockerWriteLimiter, lockerJson, async (req, res) => {
       .status(400)
       .json({ error: `text required (max ${MAX_POST_LENGTH} chars)` });
   }
-  if (type !== 'text' && !attachment?.base64) {
-    return res.status(400).json({ error: 'attachment required' });
+  let storedContentType = null;
+  if (type !== 'text') {
+    const v = validAttachment(type, attachment);
+    if (!v.ok) return res.status(400).json({ error: v.error });
+    storedContentType = v.baseType;
+  }
+
+  // Bot gate, then the hard daily write cap — both before we store anything.
+  const ts = await verifyTurnstile(req.body?.turnstileToken, req.ip);
+  if (!ts.ok) {
+    return res.status(403).json({ error: 'could not verify you are human, please try again' });
+  }
+  if ((await quotaUsedToday('locker_quota')) >= MAX_LOCKER_WRITES_PER_DAY) {
+    return res
+      .status(429)
+      .json({ error: 'the daily save limit was reached, please try again tomorrow' });
   }
 
   let code;
@@ -756,16 +819,10 @@ app.post('/api/locker', lockerWriteLimiter, lockerJson, async (req, res) => {
   await db.run(
     `INSERT INTO locker (code, type, text, attachment_base64, attachment_content_type, ts)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      code,
-      type,
-      text,
-      attachment?.base64 || null,
-      attachment?.contentType || null,
-      Date.now()
-    ]
+    [code, type, text, attachment?.base64 || null, storedContentType, Date.now()]
   );
 
+  await bumpQuota('locker_quota');
   res.status(201).json({ code });
 });
 

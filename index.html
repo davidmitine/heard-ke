@@ -529,7 +529,8 @@ function sealEnvelope(payload,done){
     try{
       let attachment=null;
       if(payload.blob){ attachment={filename:payload.filename,base64:await blobToBase64(payload.blob),contentType:payload.contentType}; }
-      const res=await fetch(API_BASE+'/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:payload.type,text:payload.text||null,attachment})});
+      const turnstileToken=await getTurnstileToken();
+      const res=await fetch(API_BASE+'/api/locker',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:payload.type,text:payload.text||null,attachment,turnstileToken})});
       const data=await res.json();
       if(!res.ok) throw new Error(data.error||'failed');
       codeBox.style.display='block';

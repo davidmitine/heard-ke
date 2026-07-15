@@ -75,6 +75,24 @@ two layers to stop it being used as a spam/phishing relay:
 
 The existing per-IP rate limit (5/min) still applies on top of both.
 
+## Locker ("keep on this site")
+Unauthenticated: anyone can save a note, voice clip, or drawing and get back an
+8-character retrieval code (`GET /api/locker/:code` to reopen it). Because writes are
+anonymous and store base64 blobs in the shared database, the write endpoint is gated the
+same way as the email relay, plus per-write limits:
+
+- **Cloudflare Turnstile** — same widget/keys as email (`TURNSTILE_SECRET_KEY`). Skipped
+  until the secret is set.
+- **Daily write cap** — `MAX_LOCKER_WRITES_PER_DAY` (default `200`), a hard global ceiling
+  tracked per UTC day in the `locker_quota` table. `0` disables new saves. Only successful
+  writes count.
+- **Attachment size cap** — `MAX_ATTACHMENT_MB` (default `10`), rejected server-side by
+  decoded byte size, not just the JSON body limit.
+- **Content-type allowlist** — attachments must be one of the media types the app actually
+  produces (`audio/webm|ogg|mp4|wav|mpeg`, `image/png|jpeg|webp`); the stored type is the
+  normalised base type (any `;codecs=…` suffix stripped), which is what gets reflected into
+  the retrieval `data:` URI. The per-IP write limit (10/min) still applies.
+
 ## Wall moderation
 Every wall post is held for review and only appears publicly once approved on `admin.html`.
 
