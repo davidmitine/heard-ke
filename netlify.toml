@@ -1,0 +1,13 @@
+# Proxy API calls through this domain so the backend's host (Render) never
+# appears in the page or the browser's network tab. The frontend calls /api/*
+# on its own origin; Netlify forwards those to the backend server-side.
+#
+# Note: Netlify's proxy times out around ~26s. The backend (Render free tier)
+# can take 30–50s to wake from cold, which could exceed that on the first
+# request after idle. Keep it warm with an external pinger (e.g. UptimeRobot
+# hitting /api/health every ~10 min) to avoid a proxied cold-start timeout.
+[[redirects]]
+  from = "/api/*"
+  to = "https://heard-ke.onrender.com/api/:splat"
+  status = 200
+  force = true

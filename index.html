@@ -431,8 +431,10 @@
   setTimeout(tick,350);
 })();
 
-/* ---------- api ---------- */
-const API_BASE = 'https://heard-ke.onrender.com';
+/* ---------- api ----------
+   Same-origin: calls go to /api/* on this domain and Netlify proxies them to the
+   backend (see netlify.toml), so the backend's host never appears in the page. */
+const API_BASE = '';
 
 /* ---------- Cloudflare Turnstile (bot-check for "email it to myself") ----------
    Paste your Turnstile SITE key below to switch the check on. It's a public key,

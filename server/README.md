@@ -100,6 +100,8 @@ Env vars:
 - `ADMIN_KEY` — required to use the review page. Set a long random string. The reviewer
   enters it once on `admin.html`; it is stored in that browser only. Without it, the
   admin API returns 503 and nothing can be reviewed (so posts stay pending forever).
+  Brute-force protected: only failed (401) attempts count toward a limit of 10 per
+  15 minutes per IP, so the right key is never throttled but key-guessing gets locked out.
 - `OPENAI_API_KEY` — optional. Enables pre-screening via OpenAI's free moderation
   endpoint (`omni-moderation-latest`). Outward harm (hate, threats, violence, sexual)
   is auto-rejected so the reviewer never has to read it. All self-harm and distress
@@ -128,4 +130,15 @@ Deploy this folder to Render.com (or Railway) as a Node web service.
 Build command: `npm install`. Start command: `npm start`.
 Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` so data survives redeploys.
 
-After deploying, update `API_BASE` in `index.html` to the server's public URL.
+### Frontend ↔ backend (same-origin proxy)
+`API_BASE` in `index.html` and `admin.html` is `''` (empty) — the frontend calls `/api/*`
+on its own domain, and `netlify.toml` rewrites `/api/*` to this backend server-side. That
+keeps the backend's host (Render) out of the page source and the browser's network tab.
+Because calls are now same-origin, the browser skips CORS entirely, but keep the site's
+origins in `CLIENT_ORIGIN` anyway (Netlify forwards the Origin header on the proxied hop).
+
+Caveat: Netlify's proxy times out around ~26s while the Render free tier can take 30–50s
+to wake from cold — keep the backend warm with an external pinger (e.g. UptimeRobot on
+`/api/health` every ~10 min) so a proxied first request doesn't time out.
+
+If you ever move the backend, update the `to =` target in `netlify.toml` (not `API_BASE`).

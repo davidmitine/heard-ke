@@ -10,6 +10,7 @@ const app = express();
 // keys off the visitor's IP, not the proxy's — otherwise every visitor shares a
 // single rate-limit bucket. Kept at 1 (not `true`) so clients can't spoof XFF.
 app.set('trust proxy', 1);
+app.disable('x-powered-by'); // don't advertise the framework
 const PORT = process.env.PORT || 4000;
 // comma-separated list, e.g. "https://www.heard.co.ke,https://heard-ke.netlify.app"
 const ALLOWED_ORIGINS = (process.env.CLIENT_ORIGIN || '*')
@@ -43,6 +44,17 @@ const rsvpLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
 const emailLimiter = rateLimit({ windowMs: 60 * 1000, max: 5 });
 const lockerWriteLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 const lockerReadLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
+// Brute-force guard on the admin key: only failed auth (401) counts toward the
+// limit, so a legit reviewer with the right key is never throttled, but someone
+// guessing keys gets locked out after a handful of misses per 15 minutes.
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode !== 401,
+  message: { error: 'too many attempts, please try again later' }
+});
+app.use('/api/admin', adminAuthLimiter);
 
 const smallJson = express.json({ limit: '20kb' });
 const wallJson = express.json({ limit: '200kb' }); // generous room for long posts

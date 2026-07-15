@@ -157,7 +157,7 @@
   </div>
 
 <script>
-const API_BASE='https://heard-ke.onrender.com';
+const API_BASE=''; // same-origin; Netlify proxies /api/* to the backend (see netlify.toml)
 let KEY='', TAB='pending', SECTION='wall', EDITING_EVENT_ID=null, GUIDE_TAB='advice', EDITING_GUIDE_ID=null, GUIDE_ITEMS=[];
 
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
