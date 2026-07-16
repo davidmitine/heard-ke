@@ -609,6 +609,46 @@ app.post('/api/admin/guide/:id/move', requireAdmin, smallJson, async (req, res) 
   res.json({ ok: true });
 });
 
+// ---------- site content (editable homepage copy) ----------
+// A fixed, known set of keys — not a free-form key/value store — so this can't
+// be used to write arbitrary rows. Values are rendered with textContent on the
+// frontend (never innerHTML), so there's no markup/link risk to preserve here,
+// unlike the crisis-contact copy, which stays in code on purpose.
+const SITE_CONTENT_KEYS = new Set([
+  'eyebrow',
+  'welcome',
+  'intro_sub',
+  'connect_heading',
+  'connect_body'
+]);
+const MAX_SITE_CONTENT_LENGTH = 2000;
+
+app.get('/api/site-content', async (req, res) => {
+  const rows = await db.all('SELECT key, value FROM site_content');
+  const content = {};
+  for (const row of rows) content[row.key] = row.value;
+  res.json(content);
+});
+
+app.post('/api/admin/site-content/:key', requireAdmin, smallJson, async (req, res) => {
+  const key = String(req.params.key || '');
+  if (!SITE_CONTENT_KEYS.has(key)) {
+    return res.status(400).json({ error: 'unknown content key' });
+  }
+  const value = String(req.body?.value || '').trim();
+  if (!value || value.length > MAX_SITE_CONTENT_LENGTH) {
+    return res
+      .status(400)
+      .json({ error: `value required (max ${MAX_SITE_CONTENT_LENGTH} chars)` });
+  }
+  await db.run(
+    `INSERT INTO site_content (key, value, ts) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, ts = excluded.ts`,
+    [key, value, Date.now()]
+  );
+  res.json({ ok: true });
+});
+
 // ---------- send to self (email) ----------
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const MAIL_FROM = process.env.MAIL_FROM || 'Heard.ke <onboarding@resend.dev>';

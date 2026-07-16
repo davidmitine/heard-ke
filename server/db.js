@@ -79,6 +79,11 @@ async function migrate() {
         attachment_content_type TEXT,
         ts INTEGER NOT NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS site_content (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        ts INTEGER NOT NULL
+      )`,
       `CREATE TABLE IF NOT EXISTS guide_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         section TEXT NOT NULL,
@@ -219,6 +224,32 @@ async function migrate() {
       'write'
     );
   }
+
+  // Editable homepage copy. INSERT OR IGNORE (not a count===0 gate like the
+  // seeds above) so this stays idempotent even as new keys are added later —
+  // existing rows (including anything an admin has already edited) are never
+  // touched, only missing keys get their default filled in.
+  const contentTs = Date.now();
+  const SITE_CONTENT_DEFAULTS = [
+    ['eyebrow', 'No name. No account. No download.'],
+    [
+      'welcome',
+      "We know you're going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you."
+    ],
+    ['intro_sub', 'Write it, say it, or draw it, then choose what happens to it.'],
+    ['connect_heading', 'Want some good company?'],
+    [
+      'connect_body',
+      'Some weight lifts better with other men around: a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.'
+    ]
+  ];
+  await client.batch(
+    SITE_CONTENT_DEFAULTS.map(([key, value]) => ({
+      sql: 'INSERT OR IGNORE INTO site_content (key, value, ts) VALUES (?, ?, ?)',
+      args: [key, value, contentTs]
+    })),
+    'write'
+  );
 
   const eventCount = (await get('SELECT COUNT(*) AS n FROM events')).n;
   if (eventCount === 0) {

@@ -3,6 +3,23 @@
 Backend for the anonymous Wall, Events/RSVP, Guide content, and "send it to myself"
 email features.
 
+## Homepage copy
+A fixed set of five homepage text fields are editable from `admin.html` → **Homepage**
+tab: `eyebrow`, `welcome`, `intro_sub`, `connect_heading`, `connect_body`. Stored as
+key/value rows in `site_content`, seeded with the current copy on first migration via
+`INSERT OR IGNORE` (so re-running the migration — e.g. on every deploy — never overwrites
+an edit, only fills in a key that's missing). Read publicly via `GET /api/site-content`;
+`index.html` fetches it after the page has already painted the hardcoded defaults, so a
+cold backend just means the defaults stay up a little longer, never a blank page. Values
+are set with `textContent`, never `innerHTML`.
+
+Deliberately **not** included: the "Let it out." typewriter headline (the animation reads
+its text synchronously on load, before any fetch could resolve — making it live-editable
+would mean either blocking the page on the backend or a jarring mid-animation text swap)
+and the crisis-contact lines (999/112, `info@heard.co.ke`) in the write/wall nudges and
+footer, which contain `tel:`/`mailto:` links baked into the HTML and stay in code so
+they can't be broken by a copy edit.
+
 ## Guide content (Advice / Talk to someone / Books / Music)
 Fully editable from `admin.html` → **Guide** tab. Content lives in the `guide_items`
 table (`section`, `title`, `body`, `url`, `position`) and is fetched publicly via

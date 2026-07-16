@@ -265,10 +265,10 @@
   </header>
 
   <div class="intro">
-    <p class="eyebrow">No name. No account. No download.</p>
+    <p class="eyebrow" id="scEyebrow">No name. No account. No download.</p>
     <h1><span id="typeText">Let it out.</span><span class="type-cursor" id="typeCursor" aria-hidden="true"></span></h1>
-    <p class="welcome">We know you're going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
-    <p class="intro-sub">Write it, say it, or draw it, then choose what happens to it.</p>
+    <p class="welcome" id="scWelcome">We know you're going through a lot. We hear you. And we appreciate your effort. Pull up to the fire, and release what burdens you.</p>
+    <p class="intro-sub" id="scIntroSub">Write it, say it, or draw it, then choose what happens to it.</p>
   </div>
 
   <div class="tabs" role="tablist">
@@ -386,8 +386,8 @@
   </section>
 
   <div class="connect">
-    <h2>Want some good company?</h2>
-    <p>Some weight lifts better with other men around: a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.</p>
+    <h2 id="scConnectHeading">Want some good company?</h2>
+    <p id="scConnectBody">Some weight lifts better with other men around: a run, a game, a fire, good company. Not a therapy circle. Just guys doing what they enjoy, and carrying it lighter together.</p>
     <div id="eventsList"></div>
   </div>
 
@@ -710,6 +710,25 @@ async function submitRsvp(id){
   }
 }
 loadEvents();
+
+/* ---------- editable homepage copy (admin-managed, falls back to the text above) ----------
+   Fetched after the page has already painted its default copy, so a cold backend just
+   means the defaults stay on screen a little longer, never a blank or broken page. The
+   typewriter headline and crisis-contact lines are intentionally not included here — see
+   server/README.md. */
+async function loadSiteContent(){
+  try{
+    const res=await fetch(API_BASE+'/api/site-content');
+    if(!res.ok) return;
+    const sc=await res.json();
+    const targets={eyebrow:'scEyebrow',welcome:'scWelcome',intro_sub:'scIntroSub',connect_heading:'scConnectHeading',connect_body:'scConnectBody'};
+    for(const key in targets){
+      if(sc[key]){ const el=document.getElementById(targets[key]); if(el) el.textContent=sc[key]; }
+    }
+  }catch(e){}
+}
+loadSiteContent();
+
 function downloadBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
 function stamp(){ return new Date().toISOString().slice(0,16).replace(/[:T]/g,'-'); }
 

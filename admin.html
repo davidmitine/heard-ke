@@ -70,6 +70,7 @@
       <button class="sectionbtn on" data-sec="wall" onclick="setSection('wall')">Wall review</button>
       <button class="sectionbtn" data-sec="events" onclick="setSection('events')">Meetups</button>
       <button class="sectionbtn" data-sec="guide" onclick="setSection('guide')">Guide</button>
+      <button class="sectionbtn" data-sec="homepage" onclick="setSection('homepage')">Homepage</button>
     </div>
 
     <!-- WALL -->
@@ -154,6 +155,37 @@
       <div class="status" id="guideStatus"></div>
       <div id="guideList"></div>
     </div>
+
+    <!-- HOMEPAGE -->
+    <div id="section-homepage" style="display:none">
+      <div class="form-card">
+        <div class="field">
+          <label>Eyebrow (small line above the headline)</label>
+          <textarea id="sc-eyebrow"></textarea>
+        </div>
+        <div class="field">
+          <label>Welcome message</label>
+          <textarea id="sc-welcome"></textarea>
+        </div>
+        <div class="field">
+          <label>Intro subtext</label>
+          <textarea id="sc-intro_sub"></textarea>
+        </div>
+        <div class="field">
+          <label>"Good company" heading</label>
+          <input id="sc-connect_heading">
+        </div>
+        <div class="field">
+          <label>"Good company" body</label>
+          <textarea id="sc-connect_body"></textarea>
+        </div>
+        <div class="row">
+          <button class="btn" onclick="saveSiteContent()">Save changes</button>
+        </div>
+        <div class="status" id="homepageStatus"></div>
+      </div>
+      <p style="color:var(--muted);font-size:.82rem">The "Let it out." headline and the emergency-contact lines (999/112, info@heard.co.ke) aren't editable here on purpose — they stay in code so they can't be changed by accident.</p>
+    </div>
   </div>
 
 <script>
@@ -187,8 +219,43 @@ function setSection(sec){
   document.getElementById('section-wall').style.display=sec==='wall'?'block':'none';
   document.getElementById('section-events').style.display=sec==='events'?'block':'none';
   document.getElementById('section-guide').style.display=sec==='guide'?'block':'none';
+  document.getElementById('section-homepage').style.display=sec==='homepage'?'block':'none';
   if(sec==='events') loadEvents();
   if(sec==='guide') loadGuideItems();
+  if(sec==='homepage') loadSiteContent();
+}
+
+/* ---------- homepage copy ---------- */
+async function loadSiteContent(){
+  const st=document.getElementById('homepageStatus'); st.textContent='';
+  try{
+    const res=await fetch(API_BASE+'/api/site-content');
+    if(!res.ok) throw new Error('failed');
+    const sc=await res.json();
+    document.getElementById('sc-eyebrow').value=sc.eyebrow||'';
+    document.getElementById('sc-welcome').value=sc.welcome||'';
+    document.getElementById('sc-intro_sub').value=sc.intro_sub||'';
+    document.getElementById('sc-connect_heading').value=sc.connect_heading||'';
+    document.getElementById('sc-connect_body').value=sc.connect_body||'';
+  }catch(e){
+    st.textContent='Could not load the current homepage text. Try again in a moment.';
+  }
+}
+async function saveSiteContent(){
+  const st=document.getElementById('homepageStatus');
+  st.textContent='Saving…';
+  const fields={eyebrow:'sc-eyebrow',welcome:'sc-welcome',intro_sub:'sc-intro_sub',connect_heading:'sc-connect_heading',connect_body:'sc-connect_body'};
+  try{
+    for(const key in fields){
+      const value=document.getElementById(fields[key]).value.trim();
+      if(!value) continue;
+      const res=await fetch(API_BASE+'/api/admin/site-content/'+key,{method:'POST',headers:{'Content-Type':'application/json','x-admin-key':KEY},body:JSON.stringify({value})});
+      if(!res.ok) throw new Error('failed');
+    }
+    st.textContent='Saved. Live on the homepage now.';
+  }catch(e){
+    st.textContent='Could not save. Try again in a moment.';
+  }
 }
 
 /* ---------- wall review ---------- */
