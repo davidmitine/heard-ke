@@ -659,7 +659,7 @@ async function loadEvents(){
     el.innerHTML=events.map(ev=>{
       const d=new Date(ev.datetime);
       const when=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit'});
-      return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${ev.location}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div>`
+      return `<div class="item" style="text-align:left"><div class="meta"><span class="ty">${when}</span><span>${esc(ev.location)}</span></div><div class="txt" style="font-weight:700;margin-bottom:4px">${esc(ev.title)}</div><div class="txt" style="color:var(--muted);font-size:.92rem;margin-bottom:12px">${esc(ev.description)}</div>`
         +`<button class="connect-btn" id="rsvpBtn-${ev.id}" style="width:100%" onclick="showRsvpForm(${ev.id})">I'm in · ${ev.rsvp_count} going</button>`
         +`<div class="rsvp-form" id="rsvpForm-${ev.id}" style="display:none;margin-top:12px">`
           +`<input class="rsvp-input" id="rsvpPhone-${ev.id}" type="tel" placeholder="Phone number, so I can reach you">`
@@ -995,8 +995,8 @@ async function redeemLockerCode(){
     const data=await res.json();
     let body='';
     if(data.type==='text') body=`<div class="txt">${esc(data.text||'')}</div>`;
-    else if(data.type==='audio') body=`<audio controls src="data:${data.attachment.contentType};base64,${data.attachment.base64}" style="width:100%"></audio>`;
-    else if(data.type==='draw') body=`<img src="data:${data.attachment.contentType};base64,${data.attachment.base64}" alt="kept drawing">`;
+    else if(data.type==='audio') body=`<audio controls src="data:${esc(data.attachment.contentType)};base64,${esc(data.attachment.base64)}" style="width:100%"></audio>`;
+    else if(data.type==='draw') body=`<img src="data:${esc(data.attachment.contentType)};base64,${esc(data.attachment.base64)}" alt="kept drawing">`;
     el.innerHTML=`<div class="item"><div class="meta"><span class="ty">${data.type}</span><span>opened just now</span></div>${body}</div>`;
   }catch(e){
     el.innerHTML='<p style="color:var(--muted);font-size:.9rem">Couldn\'t reach the site right now. Try again in a moment.</p>';
