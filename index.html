@@ -207,19 +207,19 @@
   .breathe-guide{position:fixed;inset:0;background:var(--bg);z-index:62;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
   .breathe-guide.on{display:flex;animation:fadein .4s ease forwards}
   .bg-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.2rem,5vw,1.6rem);color:var(--cream);margin-bottom:38px}
-  .bg-circle{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);box-shadow:0 0 26px rgba(230,169,92,.5);transition:transform 2.2s ease-in-out;transform:scale(1)}
+  .bg-circle{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);box-shadow:0 0 26px rgba(230,169,92,.5);transition:transform 1.7s ease-in-out;transform:scale(1)}
   .bg-circle.expand{transform:scale(1.55)}
   .bg-label{margin-top:22px;font-size:1rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
 
   /* after-words (post-release affirmation) */
-  .afterwords{position:fixed;inset:0;background:var(--cream);color:#2a1c10;z-index:65;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;cursor:pointer}
+  .afterwords{position:fixed;inset:0;background:var(--bg);color:var(--cream);z-index:65;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;cursor:pointer}
   .afterwords.on{display:flex;animation:awIn .5s cubic-bezier(.22,1,.36,1)}
   @keyframes awIn{from{opacity:0}to{opacity:1}}
   .aw-mark{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);margin-bottom:22px;box-shadow:0 0 22px rgba(230,169,92,.5)}
-  .aw-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.3rem,5vw,1.8rem);max-width:20ch;line-height:1.28}
-  .aw-another{margin-top:20px;font-family:inherit;font-size:.85rem;font-weight:600;color:#8a5a3a;background:none;border:1px solid rgba(42,28,16,.25);border-radius:999px;padding:8px 16px;cursor:pointer;transition:background-color .2s ease}
-  .aw-another:hover{background:rgba(42,28,16,.06)}
-  .aw-tap{margin-top:18px;font-size:.8rem;color:#8a7860}
+  .aw-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.3rem,5vw,1.8rem);max-width:20ch;line-height:1.28;color:var(--cream)}
+  .aw-another{margin-top:20px;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;transition:color .2s ease,border-color .2s ease}
+  .aw-another:hover{color:var(--cream);border-color:var(--muted)}
+  .aw-tap{margin-top:18px;font-size:.8rem;color:var(--muted)}
 
   /* envelope seal (keep) */
   .seal{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column}
@@ -586,18 +586,22 @@ function showBreatheGuide(quick){
   const label=document.getElementById('bgLabel');
   document.getElementById('burnSkip').classList.add('show');
   bg.classList.add('on');
-  const phaseMs=quick?300:2200;
-  label.textContent='Breathe in…';
-  circle.classList.add('expand');
-  burnTimers.push(setTimeout(()=>{
-    label.textContent='Breathe out…';
-    circle.classList.remove('expand');
-  },phaseMs));
-  burnTimers.push(setTimeout(()=>{
-    bg.classList.remove('on');
-    document.getElementById('burnSkip').classList.remove('show');
-    showAfterwords();
-  },phaseMs*2));
+  const cycles=3;
+  const phaseMs=quick?200:1700;
+  let phase=0; // even = breathe in, odd = breathe out; runs for cycles*2 phases
+  (function nextPhase(){
+    if(phase>=cycles*2){
+      bg.classList.remove('on');
+      document.getElementById('burnSkip').classList.remove('show');
+      showAfterwords();
+      return;
+    }
+    const breathingIn=phase%2===0;
+    label.textContent=breathingIn?'Breathe in…':'Breathe out…';
+    circle.classList.toggle('expand',breathingIn);
+    phase++;
+    burnTimers.push(setTimeout(nextPhase,phaseMs));
+  })();
 }
 function hideBreatheGuide(){
   document.getElementById('breatheGuide').classList.remove('on');
