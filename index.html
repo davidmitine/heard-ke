@@ -175,16 +175,22 @@
   .burn{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
   .burn.on{display:flex}
   .ember{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);color:var(--amber);max-width:16ch;filter:drop-shadow(0 0 18px rgba(230,169,92,.7))}
-  .burn.go .ember{animation:burnaway 4s ease forwards}
-  @keyframes burnaway{0%{opacity:1;transform:scale(1)}40%{opacity:1;filter:blur(0) drop-shadow(0 0 40px rgba(205,96,70,.9))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
-  .burn-done{opacity:0;margin-top:26px;font-size:1.05rem;color:var(--muted)}
-  .burn.done .burn-done{animation:fadein .8s ease forwards}
+  .burn.go .ember{animation:emberBreathe 16s ease forwards}
+  .burn.go.quick .ember{animation:emberBreathe 1.5s ease forwards}
+  @keyframes emberBreathe{0%{opacity:1;transform:scale(1)}85%{opacity:1;filter:blur(0) drop-shadow(0 0 18px rgba(230,169,92,.7))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
   @keyframes fadein{to{opacity:1}}
+  .burn-skip{position:absolute;top:18px;right:18px;font-family:inherit;font-size:.78rem;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s ease,color .2s ease,border-color .2s ease;z-index:2}
+  .burn-skip.show{opacity:1;pointer-events:auto}
+  .burn-skip:hover{color:var(--cream);border-color:var(--muted)}
+  .burn-skip:active{transform:scale(.95)}
 
   /* fire (release) */
-  .flames{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(92vw,540px);height:58vh;pointer-events:none;opacity:0}
+  .flames{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(92vw,540px);height:58vh;pointer-events:none;opacity:0;transform-origin:50% 100%}
   .burn.on .flames{opacity:1;transition:opacity .45s ease}
-  .burn.done .flames{opacity:0;transition:opacity .7s ease}
+  .burn.done .flames{opacity:0;transition:opacity .4s ease}
+  .flames.breathing{animation:breathGlow 8s ease-in-out 2}
+  .flames.breathing.quick{animation:breathGlow 1.5s ease-in-out 1}
+  @keyframes breathGlow{0%{transform:translateX(-50%) scale(1);filter:brightness(1)}50%{transform:translateX(-50%) scale(1.06);filter:brightness(1.18)}100%{transform:translateX(-50%) scale(1);filter:brightness(1)}}
   .fl{position:absolute;bottom:0;transform-origin:50% 100%;mix-blend-mode:screen;border-radius:50% 50% 46% 46% / 64% 64% 40% 40%}
   .fl1{left:50%;width:72%;margin-left:-36%;height:92%;filter:blur(15px);background:linear-gradient(to top,#cd6046 0%,#e6a95c 42%,rgba(230,169,92,0) 78%);animation:flick 1.9s ease-in-out infinite}
   .fl2{left:50%;width:50%;margin-left:-25%;height:80%;filter:blur(11px);background:linear-gradient(to top,#e0863f 0%,#f0c489 45%,rgba(240,196,137,0) 80%);animation:flick 1.4s ease-in-out infinite reverse}
@@ -199,6 +205,14 @@
   .sp:nth-child(9){left:44%;animation-delay:1.4s;width:3px;height:3px}
   .sp:nth-child(10){left:56%;animation-delay:1.8s}
   @keyframes sparkRise{0%{transform:translateY(0);opacity:0}12%{opacity:.9}100%{transform:translateY(-52vh) translateX(14px);opacity:0}}
+
+  /* after-words (post-release affirmation) */
+  .afterwords{position:fixed;inset:0;background:var(--cream);color:#2a1c10;z-index:65;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;cursor:pointer}
+  .afterwords.on{display:flex;animation:awIn .5s cubic-bezier(.22,1,.36,1)}
+  @keyframes awIn{from{opacity:0}to{opacity:1}}
+  .aw-mark{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);margin-bottom:22px;box-shadow:0 0 22px rgba(230,169,92,.5)}
+  .aw-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.3rem,5vw,1.8rem);max-width:20ch;line-height:1.28}
+  .aw-tap{margin-top:24px;font-size:.8rem;color:#8a7860}
 
   /* envelope seal (keep) */
   .seal{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column}
@@ -395,9 +409,15 @@
 </div>
 
 <div class="burn" id="burn">
+  <button class="burn-skip" id="burnSkip" onclick="skipClosing()">Skip</button>
   <div class="flames" aria-hidden="true"><span class="fl fl1"></span><span class="fl fl2"></span><span class="fl fl3"></span><span class="fl fl4"></span><span class="fl fl5"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span></div>
   <div class="ember" id="ember"></div>
-  <div class="burn-done">You got it out. Hope this felt better.</div>
+</div>
+
+<div class="afterwords" id="afterwords" aria-hidden="true" role="button" tabindex="0" onclick="hideAfterwords()">
+  <div class="aw-mark" aria-hidden="true"></div>
+  <p class="aw-line" id="awLine"></p>
+  <p class="aw-tap">Tap anywhere to continue</p>
 </div>
 
 <div class="seal" id="seal" aria-hidden="true">
@@ -498,13 +518,71 @@ function loadItems(){ try{ const raw=localStorage.getItem(KEY); if(raw) items=JS
 function saveItems(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ if(e&&e.name==='QuotaExceededError'){ alert('This device\'s storage is full. Try keeping shorter notes or fewer voice clips.'); } } }
 loadItems();
 
-/* ---------- burn overlay ---------- */
+/* ---------- burn overlay (breath-paced close + after-words) ---------- */
+const REDUCED_MOTION=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const AFFIRMATIONS=[
+  "You didn't run from it. That's the difference.",
+  "Set down. Now breathe. You're good, brother.",
+  "That took more strength than carrying it did.",
+  "Nobody saw that. It still counted.",
+  "You put it down. You don't have to pick it back up.",
+  "That's what strength actually looks like.",
+  "Some men never say it out loud. You just did.",
+  "It's out of you now. Let it stay out.",
+  "You showed up for yourself today, brother.",
+  "Carrying it alone was never the requirement.",
+  "That's one less thing weighing you down tonight.",
+  "You did the hard part. Rest counts too."
+];
+let lastAffirmationIdx=-1;
+function pickAffirmation(){
+  if(AFFIRMATIONS.length<2) return AFFIRMATIONS[0];
+  let i;
+  do{ i=Math.floor(Math.random()*AFFIRMATIONS.length); }while(i===lastAffirmationIdx);
+  lastAffirmationIdx=i;
+  return AFFIRMATIONS[i];
+}
+let burnTimers=[];
+function clearBurnTimers(){ burnTimers.forEach(clearTimeout); burnTimers=[]; }
 function burn(text){
+  clearBurnTimers();
+  hideAfterwords();
   const em=document.getElementById('ember'); em.textContent=text||'Let it go.';
-  const b=document.getElementById('burn'); b.classList.add('on');
+  const b=document.getElementById('burn');
+  const flames=b.querySelector('.flames');
+  const skipBtn=document.getElementById('burnSkip');
+  const quick=REDUCED_MOTION;
+  b.classList.toggle('quick',quick);
+  flames.classList.toggle('quick',quick);
+  skipBtn.classList.remove('show');
+  b.classList.add('on');
+  flames.classList.add('breathing');
   requestAnimationFrame(()=>b.classList.add('go'));
-  setTimeout(()=>b.classList.add('done'),3900);
-  setTimeout(()=>b.classList.remove('on','go','done'),5600);
+  const closeAt=quick?1500:16000;
+  const fadeMs=quick?150:400;
+  burnTimers.push(setTimeout(()=>skipBtn.classList.add('show'),quick?300:2000));
+  burnTimers.push(setTimeout(()=>b.classList.add('done'),closeAt));
+  burnTimers.push(setTimeout(()=>{
+    b.classList.remove('on','go','done','quick');
+    flames.classList.remove('breathing','quick');
+    skipBtn.classList.remove('show');
+    showAfterwords();
+  },closeAt+fadeMs));
+}
+function showAfterwords(){
+  document.getElementById('awLine').textContent=pickAffirmation();
+  document.getElementById('afterwords').classList.add('on');
+}
+function hideAfterwords(){
+  document.getElementById('afterwords').classList.remove('on');
+}
+function skipClosing(){
+  clearBurnTimers();
+  const b=document.getElementById('burn');
+  b.classList.remove('on','go','done','quick');
+  b.querySelector('.flames').classList.remove('breathing','quick');
+  document.getElementById('burnSkip').classList.remove('show');
+  hideAfterwords();
 }
 function sealEnvelope(payload,done){
   const s=document.getElementById('seal'); s.classList.add('on');
