@@ -175,22 +175,19 @@
   .burn{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
   .burn.on{display:flex}
   .ember{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);color:var(--amber);max-width:16ch;filter:drop-shadow(0 0 18px rgba(230,169,92,.7))}
-  .burn.go .ember{animation:emberBreathe 16s ease forwards}
-  .burn.go.quick .ember{animation:emberBreathe 1.5s ease forwards}
-  @keyframes emberBreathe{0%{opacity:1;transform:scale(1)}85%{opacity:1;filter:blur(0) drop-shadow(0 0 18px rgba(230,169,92,.7))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
+  .burn.go .ember{animation:emberBreathe 3s ease forwards}
+  .burn.go.quick .ember{animation:emberBreathe .8s ease forwards}
+  @keyframes emberBreathe{0%{opacity:1;transform:scale(1)}70%{opacity:1;filter:blur(0) drop-shadow(0 0 18px rgba(230,169,92,.7))}100%{opacity:0;transform:scale(1.08) translateY(-40px);filter:blur(14px)}}
   @keyframes fadein{to{opacity:1}}
-  .burn-skip{position:absolute;top:18px;right:18px;font-family:inherit;font-size:.78rem;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s ease,color .2s ease,border-color .2s ease;z-index:2}
+  .burn-skip{position:fixed;top:18px;right:18px;font-family:inherit;font-size:.78rem;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s ease,color .2s ease,border-color .2s ease;z-index:70}
   .burn-skip.show{opacity:1;pointer-events:auto}
   .burn-skip:hover{color:var(--cream);border-color:var(--muted)}
   .burn-skip:active{transform:scale(.95)}
 
   /* fire (release) */
-  .flames{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(92vw,540px);height:58vh;pointer-events:none;opacity:0;transform-origin:50% 100%}
+  .flames{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(92vw,540px);height:58vh;pointer-events:none;opacity:0}
   .burn.on .flames{opacity:1;transition:opacity .45s ease}
   .burn.done .flames{opacity:0;transition:opacity .4s ease}
-  .flames.breathing{animation:breathGlow 8s ease-in-out 2}
-  .flames.breathing.quick{animation:breathGlow 1.5s ease-in-out 1}
-  @keyframes breathGlow{0%{transform:translateX(-50%) scale(1);filter:brightness(1)}50%{transform:translateX(-50%) scale(1.06);filter:brightness(1.18)}100%{transform:translateX(-50%) scale(1);filter:brightness(1)}}
   .fl{position:absolute;bottom:0;transform-origin:50% 100%;mix-blend-mode:screen;border-radius:50% 50% 46% 46% / 64% 64% 40% 40%}
   .fl1{left:50%;width:72%;margin-left:-36%;height:92%;filter:blur(15px);background:linear-gradient(to top,#cd6046 0%,#e6a95c 42%,rgba(230,169,92,0) 78%);animation:flick 1.9s ease-in-out infinite}
   .fl2{left:50%;width:50%;margin-left:-25%;height:80%;filter:blur(11px);background:linear-gradient(to top,#e0863f 0%,#f0c489 45%,rgba(240,196,137,0) 80%);animation:flick 1.4s ease-in-out infinite reverse}
@@ -206,13 +203,23 @@
   .sp:nth-child(10){left:56%;animation-delay:1.8s}
   @keyframes sparkRise{0%{transform:translateY(0);opacity:0}12%{opacity:.9}100%{transform:translateY(-52vh) translateX(14px);opacity:0}}
 
+  /* breathing guide (between burn and after-words) */
+  .breathe-guide{position:fixed;inset:0;background:var(--bg);z-index:62;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
+  .breathe-guide.on{display:flex;animation:fadein .4s ease forwards}
+  .bg-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.2rem,5vw,1.6rem);color:var(--cream);margin-bottom:38px}
+  .bg-circle{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);box-shadow:0 0 26px rgba(230,169,92,.5);transition:transform 2.2s ease-in-out;transform:scale(1)}
+  .bg-circle.expand{transform:scale(1.55)}
+  .bg-label{margin-top:22px;font-size:1rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
+
   /* after-words (post-release affirmation) */
   .afterwords{position:fixed;inset:0;background:var(--cream);color:#2a1c10;z-index:65;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;cursor:pointer}
   .afterwords.on{display:flex;animation:awIn .5s cubic-bezier(.22,1,.36,1)}
   @keyframes awIn{from{opacity:0}to{opacity:1}}
   .aw-mark{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);margin-bottom:22px;box-shadow:0 0 22px rgba(230,169,92,.5)}
   .aw-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.3rem,5vw,1.8rem);max-width:20ch;line-height:1.28}
-  .aw-tap{margin-top:24px;font-size:.8rem;color:#8a7860}
+  .aw-another{margin-top:20px;font-family:inherit;font-size:.85rem;font-weight:600;color:#8a5a3a;background:none;border:1px solid rgba(42,28,16,.25);border-radius:999px;padding:8px 16px;cursor:pointer;transition:background-color .2s ease}
+  .aw-another:hover{background:rgba(42,28,16,.06)}
+  .aw-tap{margin-top:18px;font-size:.8rem;color:#8a7860}
 
   /* envelope seal (keep) */
   .seal{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column}
@@ -408,15 +415,23 @@
   <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:999">999</a> or <a href="tel:112">112</a>. Want to talk to someone? Email <a href="mailto:info@heard.co.ke">info@heard.co.ke</a>.</p>
 </div>
 
+<button class="burn-skip" id="burnSkip" onclick="skipClosing()">Skip</button>
+
 <div class="burn" id="burn">
-  <button class="burn-skip" id="burnSkip" onclick="skipClosing()">Skip</button>
   <div class="flames" aria-hidden="true"><span class="fl fl1"></span><span class="fl fl2"></span><span class="fl fl3"></span><span class="fl fl4"></span><span class="fl fl5"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span><span class="sp"></span></div>
   <div class="ember" id="ember"></div>
+</div>
+
+<div class="breathe-guide" id="breatheGuide" aria-hidden="true">
+  <p class="bg-line">You've let it go.</p>
+  <div class="bg-circle" id="bgCircle"></div>
+  <p class="bg-label" id="bgLabel">Breathe in…</p>
 </div>
 
 <div class="afterwords" id="afterwords" aria-hidden="true" role="button" tabindex="0" onclick="hideAfterwords()">
   <div class="aw-mark" aria-hidden="true"></div>
   <p class="aw-line" id="awLine"></p>
+  <button class="aw-another" id="awAnother" onclick="event.stopPropagation();showAfterwords()">Show me another</button>
   <p class="aw-tap">Tap anywhere to continue</p>
 </div>
 
@@ -547,27 +562,46 @@ function clearBurnTimers(){ burnTimers.forEach(clearTimeout); burnTimers=[]; }
 function burn(text){
   clearBurnTimers();
   hideAfterwords();
+  hideBreatheGuide();
   const em=document.getElementById('ember'); em.textContent=text||'Let it go.';
   const b=document.getElementById('burn');
-  const flames=b.querySelector('.flames');
   const skipBtn=document.getElementById('burnSkip');
   const quick=REDUCED_MOTION;
   b.classList.toggle('quick',quick);
-  flames.classList.toggle('quick',quick);
   skipBtn.classList.remove('show');
   b.classList.add('on');
-  flames.classList.add('breathing');
   requestAnimationFrame(()=>b.classList.add('go'));
-  const closeAt=quick?1500:16000;
+  const burnMs=quick?800:3000;
   const fadeMs=quick?150:400;
-  burnTimers.push(setTimeout(()=>skipBtn.classList.add('show'),quick?300:2000));
-  burnTimers.push(setTimeout(()=>b.classList.add('done'),closeAt));
+  burnTimers.push(setTimeout(()=>skipBtn.classList.add('show'),quick?300:1000));
+  burnTimers.push(setTimeout(()=>b.classList.add('done'),burnMs));
   burnTimers.push(setTimeout(()=>{
     b.classList.remove('on','go','done','quick');
-    flames.classList.remove('breathing','quick');
-    skipBtn.classList.remove('show');
+    showBreatheGuide(quick);
+  },burnMs+fadeMs));
+}
+function showBreatheGuide(quick){
+  const bg=document.getElementById('breatheGuide');
+  const circle=document.getElementById('bgCircle');
+  const label=document.getElementById('bgLabel');
+  document.getElementById('burnSkip').classList.add('show');
+  bg.classList.add('on');
+  const phaseMs=quick?300:2200;
+  label.textContent='Breathe in…';
+  circle.classList.add('expand');
+  burnTimers.push(setTimeout(()=>{
+    label.textContent='Breathe out…';
+    circle.classList.remove('expand');
+  },phaseMs));
+  burnTimers.push(setTimeout(()=>{
+    bg.classList.remove('on');
+    document.getElementById('burnSkip').classList.remove('show');
     showAfterwords();
-  },closeAt+fadeMs));
+  },phaseMs*2));
+}
+function hideBreatheGuide(){
+  document.getElementById('breatheGuide').classList.remove('on');
+  document.getElementById('bgCircle').classList.remove('expand');
 }
 function showAfterwords(){
   document.getElementById('awLine').textContent=pickAffirmation();
@@ -580,8 +614,8 @@ function skipClosing(){
   clearBurnTimers();
   const b=document.getElementById('burn');
   b.classList.remove('on','go','done','quick');
-  b.querySelector('.flames').classList.remove('breathing','quick');
   document.getElementById('burnSkip').classList.remove('show');
+  hideBreatheGuide();
   hideAfterwords();
 }
 function sealEnvelope(payload,done){
