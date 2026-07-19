@@ -207,8 +207,12 @@
   .breathe-guide{position:fixed;inset:0;background:var(--bg);z-index:62;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px}
   .breathe-guide.on{display:flex;animation:fadein .4s ease forwards}
   .bg-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.2rem,5vw,1.6rem);color:var(--cream);margin-bottom:38px}
-  .bg-circle{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);box-shadow:0 0 48px rgba(230,169,92,.5);transition-property:transform;transition-timing-function:ease-in-out;transform:scale(1)}
+  .bg-circle{position:relative;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);box-shadow:0 0 48px rgba(230,169,92,.5);transition-property:transform;transition-timing-function:ease-in-out;transform:scale(1)}
+  .bg-circle::before,.bg-circle::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid rgba(240,196,137,.8);opacity:.65;transform:scale(1);transition-property:transform,opacity;transition-duration:var(--breath-dur,3s);transition-timing-function:ease-out;pointer-events:none}
+  .bg-circle::after{border-color:rgba(230,169,92,.6);transition-delay:.25s}
   .bg-circle.expand{transform:scale(1.5)}
+  .bg-circle.expand::before{transform:scale(2.3);opacity:0}
+  .bg-circle.expand::after{transform:scale(2.9);opacity:0}
   .bg-label{margin-top:54px;font-size:1rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
 
   /* after-words (post-release affirmation) */
@@ -629,6 +633,7 @@ function showBreatheGuide(quick){
     const breathingIn=phase%2===0;
     const dur=breathingIn?inMs:outMs;
     circle.style.transitionDuration=dur+'ms';
+    circle.style.setProperty('--breath-dur',dur+'ms');
     label.textContent=breathingIn?'Breathe in…':'Breathe out…';
     circle.classList.toggle('expand',breathingIn);
     phase++;
