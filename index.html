@@ -623,7 +623,7 @@ function showBreatheGuide(quick){
   const inMs=quick?250:3000;
   const outMs=quick?320:4000;
   let phase=0; // even = breathe in, odd = breathe out; runs for cycles*2 phases
-  (function nextPhase(){
+  function nextPhase(){
     if(phase>=cycles*2){
       bg.classList.remove('on');
       document.getElementById('burnSkip').classList.remove('show');
@@ -638,7 +638,11 @@ function showBreatheGuide(quick){
     circle.classList.toggle('expand',breathingIn);
     phase++;
     burnTimers.push(setTimeout(nextPhase,dur));
-  })();
+  }
+  // Let the browser paint the circle at rest at least once before the first
+  // expand — starting the transition in the same tick that unhides the
+  // overlay skips straight to the end state instead of animating into it.
+  requestAnimationFrame(()=>requestAnimationFrame(nextPhase));
 }
 function hideBreatheGuide(){
   document.getElementById('breatheGuide').classList.remove('on');
