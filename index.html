@@ -445,7 +445,7 @@
   <p class="bg-label" id="bgLabel">Breathe in…</p>
 </div>
 
-<div class="afterwords" id="afterwords" aria-hidden="true" role="button" tabindex="0" onclick="hideAfterwords()">
+<div class="afterwords" id="afterwords" aria-hidden="true" role="button" tabindex="0" onclick="finishClosing()">
   <div class="aw-mark" aria-hidden="true"></div>
   <p class="aw-line" id="awLine"><span id="awLineText"></span><span class="type-cursor" id="awCursor" aria-hidden="true"></span></p>
   <button class="aw-another" id="awAnother" onclick="event.stopPropagation();showAfterwords()">Show me another</button>
@@ -576,10 +576,12 @@ function pickAffirmation(){
 }
 let burnTimers=[];
 function clearBurnTimers(){ burnTimers.forEach(clearTimeout); burnTimers=[]; }
+let afterClosingCallback=null;
 function burn(text){
   clearBurnTimers();
   hideAfterwords();
   hideBreatheGuide();
+  afterClosingCallback=null;
   const em=document.getElementById('ember'); em.textContent=text||'Let it go.';
   const b=document.getElementById('burn');
   const skipBtn=document.getElementById('burnSkip');
@@ -596,6 +598,16 @@ function burn(text){
     b.classList.remove('on','go','done','quick');
     showBreatheGuide(quick);
   },burnMs+fadeMs));
+}
+// Runs just the breathing + affirmation half of the closing ritual (no fire),
+// for actions other than Release: Keep, Say it anonymously, Send it to myself.
+// onDone fires once the user dismisses (or skips) the affirmation card.
+function runClosingRitual(onDone){
+  clearBurnTimers();
+  hideAfterwords();
+  hideBreatheGuide();
+  afterClosingCallback=onDone||null;
+  showBreatheGuide(REDUCED_MOTION);
 }
 function showBreatheGuide(quick){
   const bg=document.getElementById('breatheGuide');
@@ -639,7 +651,7 @@ function typeAffirmation(text){
   (function tick(){
     textEl.textContent=text.slice(0,i);
     i++;
-    if(i<=text.length){ awTypeTimer=setTimeout(tick,28); }
+    if(i<=text.length){ awTypeTimer=setTimeout(tick,52); }
     else { awTypeTimer=setTimeout(()=>cursor.classList.add('gone'),700); }
   })();
 }
@@ -651,13 +663,19 @@ function hideAfterwords(){
   clearTimeout(awTypeTimer);
   document.getElementById('afterwords').classList.remove('on');
 }
+// Real dismissal (tap-anywhere or skip) — runs whatever the triggering action queued up next.
+function finishClosing(){
+  hideAfterwords();
+  const cb=afterClosingCallback; afterClosingCallback=null;
+  if(cb) cb();
+}
 function skipClosing(){
   clearBurnTimers();
   const b=document.getElementById('burn');
   b.classList.remove('on','go','done','quick');
   document.getElementById('burnSkip').classList.remove('show');
   hideBreatheGuide();
-  hideAfterwords();
+  finishClosing();
 }
 function sealEnvelope(payload,done){
   const s=document.getElementById('seal'); s.classList.add('on');
@@ -710,8 +728,8 @@ dump.addEventListener('input',()=>{
   document.getElementById('nudgeW').style.display=heavy?'block':'none';
 });
 function releaseText(){ const t=dump.value.trim(); burn(t? (t.length>90?t.slice(0,90)+'…':t):''); dump.value=''; document.getElementById('nudgeW').style.display='none'; }
-async function keepText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} items.unshift({id:Date.now(),ts:Date.now(),type:'text',data:t}); await saveItems(); dump.value=''; sealEnvelope({type:'text',text:t},()=>switchMode('kept')); }
-function sayIt(){ const t=dump.value.trim(); switchMode('wall'); if(t) wallDump.value=t; }
+async function keepText(){ const t=dump.value.trim(); if(t.length<2){dump.focus();return;} items.unshift({id:Date.now(),ts:Date.now(),type:'text',data:t}); await saveItems(); dump.value=''; sealEnvelope({type:'text',text:t},()=>runClosingRitual(()=>switchMode('kept'))); }
+function sayIt(){ const t=dump.value.trim(); runClosingRitual(()=>{ switchMode('wall'); if(t) wallDump.value=t; }); }
 
 /* ---------- WALL ---------- */
 const wallDump=document.getElementById('wallDump');
@@ -930,10 +948,11 @@ async function shareViaFile(blob,filename,contentType,title){
 async function sendText(channel){
   const t=dump.value.trim(); if(t.length<2){dump.focus();return;}
   document.getElementById('sendChoice-write').classList.remove('on');
-  if(channel==='whatsapp'){ window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank'); return; }
+  if(channel==='whatsapp'){ window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank'); runClosingRitual(); return; }
   const btn=document.querySelector('#sendChoice-write .act.send');
   const sent=await sendToEmail('text',t,null,btn);
   if(!sent) downloadBlob(new Blob([t],{type:'text/plain'}),'heard-ke-note-'+stamp()+'.txt');
+  runClosingRitual();
 }
 
 /* ---------- SPEAK ---------- */
@@ -1075,16 +1094,17 @@ function resetVoice(){ recBlob=null; document.getElementById('relVoice').disable
   document.getElementById('player').style.display='none'; document.getElementById('timer').style.display='none';
   document.getElementById('recLabel').textContent='Tap to speak. Say it out loud. Nobody else hears it.'; }
 function releaseVoice(){ burn('Said out loud. Now let it go.'); resetVoice(); }
-function keepVoice(){ if(!recBlob)return; const blob=recBlob; const mt=recMimeType; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.'+extForMimeType(mt),contentType:mt},()=>switchMode('kept')); }; fr.readAsDataURL(blob); }
+function keepVoice(){ if(!recBlob)return; const blob=recBlob; const mt=recMimeType; const fr=new FileReader(); fr.onload=async()=>{ items.unshift({id:Date.now(),ts:Date.now(),type:'audio',data:fr.result}); await saveItems(); resetVoice(); sealEnvelope({type:'audio',blob,filename:'heard-ke-voice-'+stamp()+'.'+extForMimeType(mt),contentType:mt},()=>runClosingRitual(()=>switchMode('kept'))); }; fr.readAsDataURL(blob); }
 async function sendVoice(channel){
   if(!recBlob)return;
   document.getElementById('sendChoice-speak').classList.remove('on');
   const ext=extForMimeType(recMimeType);
-  if(channel==='whatsapp'){ await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.'+ext,recMimeType,'Voice note from Heard.ke'); return; }
+  if(channel==='whatsapp'){ await shareViaFile(recBlob,'heard-ke-voice-'+stamp()+'.'+ext,recMimeType,'Voice note from Heard.ke'); runClosingRitual(); return; }
   const btn=document.querySelector('#sendChoice-speak .act.send');
   const base64=await blobToBase64(recBlob);
   const sent=await sendToEmail('audio',null,{filename:'heard-ke-voice-'+stamp()+'.'+ext,base64,contentType:recMimeType},btn);
   if(!sent) downloadBlob(recBlob,'heard-ke-voice-'+stamp()+'.'+ext);
+  runClosingRitual();
 }
 
 /* ---------- DRAW ---------- */
@@ -1105,16 +1125,17 @@ canvas.addEventListener('pointerup',()=>{drawing=false;});
 canvas.addEventListener('pointerleave',()=>{drawing=false;});
 function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); dirty=false; }
 function releaseDraw(){ if(!dirty){return;} canvas.classList.add('gone'); setTimeout(()=>{clearCanvas();canvas.classList.remove('gone');},850); burn('Out of your hands now.'); }
-async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); canvas.toBlob(blob=>{ clearCanvas(); sealEnvelope({type:'draw',blob,filename:'heard-ke-drawing-'+stamp()+'.png',contentType:'image/png'},()=>switchMode('kept')); }); }
+async function keepDraw(){ if(!dirty){return;} const url=canvas.toDataURL('image/png'); items.unshift({id:Date.now(),ts:Date.now(),type:'draw',data:url}); await saveItems(); canvas.toBlob(blob=>{ clearCanvas(); sealEnvelope({type:'draw',blob,filename:'heard-ke-drawing-'+stamp()+'.png',contentType:'image/png'},()=>runClosingRitual(()=>switchMode('kept'))); }); }
 function sendDraw(channel){
   if(!dirty)return;
   document.getElementById('sendChoice-draw').classList.remove('on');
   canvas.toBlob(async b=>{
-    if(channel==='whatsapp'){ await shareViaFile(b,'heard-ke-drawing-'+stamp()+'.png','image/png','Drawing from Heard.ke'); return; }
+    if(channel==='whatsapp'){ await shareViaFile(b,'heard-ke-drawing-'+stamp()+'.png','image/png','Drawing from Heard.ke'); runClosingRitual(); return; }
     const btn=document.querySelector('#sendChoice-draw .act.send');
     const base64=await blobToBase64(b);
     const sent=await sendToEmail('draw',null,{filename:'heard-ke-drawing-'+stamp()+'.png',base64,contentType:'image/png'},btn);
     if(!sent) downloadBlob(b,'heard-ke-drawing-'+stamp()+'.png');
+    runClosingRitual();
   });
 }
 fitCanvas();
