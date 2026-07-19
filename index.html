@@ -259,6 +259,20 @@
   .foot a{color:var(--amber-soft)}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   ::selection{background:var(--amber);color:#241a10}
+
+  /* desktop-only widescreen pass — everything below is scoped to >=900px, so
+     phones and tablets in portrait keep the exact mobile layout untouched */
+  @media(min-width:900px){
+    .app{max-width:860px}
+    .actions{grid-template-columns:repeat(2,1fr)}
+    .actions .act:last-of-type:nth-of-type(odd){grid-column:1/-1}
+    .actions .send-choice{grid-column:1/-1}
+    .send-choice.on{grid-template-columns:repeat(2,1fr)}
+    textarea{min-height:280px}
+    canvas{height:420px}
+    .rec-stage{padding:48px 40px}
+    .connect{padding:34px 40px}
+  }
   @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
 </style>
 </head>
