@@ -65,7 +65,7 @@
   .type-cursor.gone{opacity:0}
   @keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
   .intro p{color:var(--muted);margin-top:8px}
-  .intro .welcome{color:var(--cream);font-size:1.14rem;line-height:1.55;margin-top:12px;max-width:44ch}
+  .intro .welcome{color:var(--cream);font-size:1.14rem;line-height:1.55;margin-top:12px;max-width:44ch;white-space:pre-line}
   .intro .intro-sub{color:var(--muted);font-size:.95rem;margin-top:14px}
   .intro>*{animation:introIn .65s cubic-bezier(.22,1,.36,1) backwards}
   .intro>*:nth-child(1){animation-delay:.05s}
@@ -309,7 +309,8 @@
   <div class="intro">
     <p class="eyebrow" id="scEyebrow">No name. No account. No download.</p>
     <h1><span id="typeText">Let it out.</span><span class="type-cursor" id="typeCursor" aria-hidden="true"></span></h1>
-    <p class="welcome" id="scWelcome">We know you're going through a lot. We hear you. And we appreciate your effort.<br>Pull up to the fire, and release what burdens you.</p>
+    <p class="welcome" id="scWelcome">We know you're going through a lot. We hear you. And we appreciate your effort.
+Pull up to the fire, and release what burdens you.</p>
     <p class="intro-sub" id="scIntroSub">Write it, say it, or draw it, then choose what happens to it.</p>
   </div>
 
