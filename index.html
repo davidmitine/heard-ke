@@ -219,7 +219,7 @@
   .afterwords{position:fixed;inset:0;background:var(--bg);color:var(--cream);z-index:65;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;cursor:pointer}
   .afterwords.on{display:flex;animation:awIn .5s cubic-bezier(.22,1,.36,1)}
   @keyframes awIn{from{opacity:0}to{opacity:1}}
-  .aw-mark{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0c489,#cd6046);margin-bottom:22px;box-shadow:0 0 22px rgba(230,169,92,.5)}
+  .aw-mark{width:36px;height:36px;margin-bottom:22px;filter:drop-shadow(0 0 14px rgba(230,169,92,.5))}
   .aw-line{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(1.3rem,5vw,1.8rem);max-width:20ch;line-height:1.28;color:var(--cream)}
   .aw-another{margin-top:20px;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer;transition:color .2s ease,border-color .2s ease}
   .aw-another:hover{color:var(--cream);border-color:var(--muted)}
@@ -433,7 +433,7 @@
     <div id="eventsList"></div>
   </div>
 
-  <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:999">999</a> or <a href="tel:112">112</a>. Want to talk to someone? Email <a href="mailto:info@heard.co.ke">info@heard.co.ke</a>.<br>&nbsp;·&nbsp;<a href="privacy.html">Privacy Policy</a><br><span style="font-size:.85em">Heard.ke by David Mitine</span></p>
+  <p class="foot">Heard.ke is peer support, not an emergency service. In danger right now? Call <a href="tel:999">999</a> or <a href="tel:112">112</a>. Want to talk to someone? Email <a href="mailto:info@heard.co.ke">info@heard.co.ke</a>.<br>&nbsp;·&nbsp;<a href="privacy.html">Privacy Policy</a></p>
 </div>
 
 <button class="burn-skip" id="burnSkip" onclick="skipClosing()">Skip</button>
@@ -450,7 +450,16 @@
 </div>
 
 <div class="afterwords" id="afterwords" aria-hidden="true" role="button" tabindex="0" onclick="finishClosing()">
-  <div class="aw-mark" aria-hidden="true"></div>
+  <svg class="aw-mark" viewBox="0 0 120 120" aria-hidden="true">
+    <g fill="#efe7d9">
+      <rect x="18" y="46" width="11" height="30" rx="5.5"/>
+      <rect x="35" y="36" width="11" height="50" rx="5.5"/>
+      <rect x="76" y="36" width="11" height="50" rx="5.5"/>
+      <rect x="93" y="46" width="11" height="30" rx="5.5"/>
+    </g>
+    <circle cx="61" cy="30" r="8" fill="#e6a95c"/>
+    <rect x="55.5" y="42" width="11" height="46" rx="5.5" fill="#e6a95c"/>
+  </svg>
   <p class="aw-line" id="awLine"><span id="awLineText"></span><span class="type-cursor" id="awCursor" aria-hidden="true"></span></p>
   <button class="aw-another" id="awAnother" onclick="event.stopPropagation();showAfterwords()">Show me another</button>
   <p class="aw-tap">Tap anywhere to continue</p>
